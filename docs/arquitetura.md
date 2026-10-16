@@ -40,11 +40,14 @@ validar disponibilidade e conflitos, tratar reservas concorrentes e bloquear
 alocações durante manutenção (RF-03 a RF-09 no RFC funcional; RN-01 a RN-04
 em [PRD.md](./PRD.md), seção 4).
 
-Os documentos não determinam uma topologia, um estilo arquitetural, protocolos
-de comunicação ou uma plataforma de execução; exigem autenticação com JWT.
-O PRD prevê diagramas de contexto, componentes e sequências críticas como
-entregáveis ([PRD.md](./PRD.md), seção 7), mas eles ainda não estão presentes
-entre as fontes consultadas.
+O PRD define Java como linguagem principal, Spring Boot no backend, H2 como
+banco relacional e HTML/CSS integrados ao Spring para a interface web
+([PRD.md](./PRD.md), seção 1.1). Esses são fatos documentados, não uma
+inferência desta análise. Os documentos ainda não determinam topologia, estilo
+arquitetural, protocolos de comunicação, hospedagem ou limites entre
+componentes. O PRD prevê diagramas de contexto, componentes e sequências
+críticas como entregáveis ([PRD.md](./PRD.md), seção 7), mas eles ainda não
+estão presentes entre as fontes consultadas.
 
 ### Objetivo arquitetural
 
@@ -102,7 +105,7 @@ confirmar.
    RFC não funcional).
 8. **Qualidade e testes:** cobrir regras de negócio, autorização, conflito,
    concorrência e casos de borda; metas de cobertura de linha e branch são
-   80% e 70%, respectivamente. O PRD também exige evidência de TDD/BDD e
+   80% , respectivamente. O PRD também exige evidência de TDD/BDD e
    validação de qualidade no pipeline (RF-20 no RFC funcional e RNF-08 a
    RNF-11 no RFC não funcional; RNF-03 a RNF-05, COV-01, COV-02 e QUAL-01 em
    [PRD.md](./PRD.md), seções 5 e 6).
@@ -191,11 +194,12 @@ stakeholders quando as perguntas abertas forem respondidas.
   semântica dos filtros de relatório não estão fechados.
 - Não estão definidos formato, persistência, consulta e destinatário das
   notificações simuladas, nem se haverá integração externa opcional.
-- Não há decisão de tecnologia de implementação, persistência, hospedagem,
-  topologia ou limites entre componentes. Ferramentas e tecnologias citadas
-  para testes/entrega (por exemplo, JMeter, Testcontainers, WireMock,
-  GitHub Actions, JaCoCo e SonarCloud) não constituem, por si, uma decisão
-  sobre a arquitetura de produção.
+- Embora o PRD registre Java, Spring Boot, H2 e HTML/CSS como tecnologias
+  principais, não há decisão documentada sobre hospedagem, topologia, estilo
+  arquitetural, protocolos ou limites entre componentes. Ferramentas citadas
+  para testes/entrega (por exemplo, JMeter, Testcontainers, WireMock, GitHub
+  Actions, JaCoCo e SonarCloud) não constituem, por si, uma decisão sobre a
+  arquitetura de produção.
 - Os documentos não indicam stakeholders além das três personas, nem
   responsabilidades por operação, suporte ou aprovação das decisões.
 

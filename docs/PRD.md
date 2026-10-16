@@ -5,6 +5,13 @@
 * **Contexto Metodológico:** As técnicas demonstradas em aula no projeto de referência *Foot Fanatics* devem ser aplicadas incrementalmente pelas equipes neste sistema de organização de recursos.
 * **Objetivo:** Desenvolver e validar uma aplicação confiável para alocar salas, professores e materiais sem conflitos de horário, fornecendo evidências objetivas de qualidade, segurança, rastreabilidade e desempenho.
 
+### 1.1. Tecnologias e Arquitetura
+
+* **Linguagem principal:** Java.
+* **Backend:** Spring Boot, utilizando o ecossistema Spring para implementar as regras de negócio, a autenticação, a autorização e os endpoints da aplicação.
+* **Persistência:** H2 como banco de dados relacional da aplicação.
+* **Interface web:** HTML e CSS integrados ao Spring para construção da interface responsiva do sistema, com renderização das páginas pela aplicação.
+
 ---
 
 ## 2. Personas e Perfis de Acesso
