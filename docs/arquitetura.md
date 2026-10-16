@@ -1,283 +1,749 @@
-# Arquitetura — seção inicial
+Abaixo está o conteúdo em Markdown puro, pronto para copiar e salvar como `docs/arquitetura.md`.
 
-> Esta seção consolida o contexto e os drivers arquiteturais que podem ser
-> extraídos dos artefatos atualmente disponíveis. Não define uma arquitetura
-> de implementação nem substitui os requisitos. Fatos estão associados às
-> fontes citadas; prioridades e riscos são análises preliminares, identificadas
-> como tais.
+Como o documento é extenso, copie o conteúdo do bloco inteiro e salve com codificação UTF-8.
 
-## Fontes consultadas e rastreabilidade
+Escrita
 
-- [README.md](../README.md): objetivo resumido do sistema.
-- [PRD.md](./PRD.md): personas, requisitos, regras de negócio, critérios de
-  qualidade e entregáveis.
-- [solicitante.md](./personas/solicitante.md),
-  [responsavel.md](./personas/responsavel.md) e
-  [administrador.md](./personas/administrador.md): perfil, objetivos,
-  permissões, restrições e necessidades das personas.
-- [requisitos-funcionais.md](../rfc/requisitos-funcionais.md): requisitos
-  funcionais detalhados RF-01 a RF-20.
-- [requisitos-nao-funcionais.md](../rfc/requisitos-nao-funcionais.md):
-  requisitos não funcionais detalhados RNF-01 a RNF-18.
+# Arquitetura — Sistema de Organização de Recursos
 
-O PRD e os RFCs usam numerações RF/RNF diferentes para assuntos relacionados.
-As referências abaixo identificam sempre o arquivo junto do identificador;
-um identificador isolado não deve ser tratado como chave global.
+**Status:** Proposta arquitetural para projeto acadêmico\
+**Versão:** 1.0\
+**Data:** 15/10/2026\
+**Tecnologias-base:** Java, Spring Boot, Spring Security, H2, HTML e CSS\
+**Escopo:** Aplicação local, sem infraestrutura de produção externa
 
-## 1. Contexto e objetivo
+## 1\. Objetivo e escopo
 
-### Fatos
+Este documento registra as decisões arquiteturais do Sistema de Organização de Recursos, relacionando os requisitos funcionais, não funcionais, regras de negócio, riscos e evidências de qualidade esperadas.
 
-O sistema deve organizar a alocação institucional de salas, professores,
-materiais e recursos, evitando conflitos de horário e apoiando reservas,
-manutenção, movimentação de materiais, auditoria e relatórios. Esse objetivo
-está declarado no [README.md](../README.md) e em [PRD.md](./PRD.md), seção 1.
+O sistema deverá permitir a gestão de salas, professores, materiais, equipamentos, reservas, períodos de manutenção, movimentações, auditoria e relatórios institucionais.
 
-Os fluxos conhecidos envolvem três perfis: Solicitante, Responsável e
-Administrador ([PRD.md](./PRD.md), seção 2; RF-01 e RF-15 em
-[requisitos-funcionais.md](../rfc/requisitos-funcionais.md)). O sistema deve
-validar disponibilidade e conflitos, tratar reservas concorrentes e bloquear
-alocações durante manutenção (RF-03 a RF-09 no RFC funcional; RN-01 a RN-04
-em [PRD.md](./PRD.md), seção 4).
+A arquitetura deverá preservar:
 
-O PRD define Java como linguagem principal, Spring Boot no backend, H2 como
-banco relacional e HTML/CSS integrados ao Spring para a interface web
-([PRD.md](./PRD.md), seção 1.1). Esses são fatos documentados, não uma
-inferência desta análise. Os documentos ainda não determinam topologia, estilo
-arquitetural, protocolos de comunicação, hospedagem ou limites entre
-componentes. O PRD prevê diagramas de contexto, componentes e sequências
-críticas como entregáveis ([PRD.md](./PRD.md), seção 7), mas eles ainda não
-estão presentes entre as fontes consultadas.
+- Integridade das reservas e prevenção de conflitos temporais.
+- Proteção contra dupla reserva em requisições concorrentes.
+- Autenticação por JWT, com token de acesso e renovação.
+- Autorização por perfil e verificação de propriedade das reservas.
+- Controle explícito do ciclo de vida das reservas.
+- Auditoria persistente das alterações relevantes.
+- Desempenho mensurável, testes automatizados e rastreabilidade.
+- Facilidade de execução, instalação, demonstração e avaliação acadêmica.
 
-### Objetivo arquitetural
+Este documento não substitui o PRD nem os arquivos de requisitos. Quando uma regra funcional ainda não estiver suficientemente definida, a decisão adotada será identificada como premissa acadêmica, sujeita a revisão.
 
-Orientar decisões futuras para que os fluxos de reserva e administração de
-recursos satisfaçam os requisitos de segurança, integridade temporal,
-desempenho, rastreabilidade, observabilidade e qualidade de testes
-documentados. Esta orientação não presume uma solução técnica específica.
+## 2\. Fontes e rastreabilidade
 
-## 2. Stakeholders e personas
+As decisões deste documento são fundamentadas nos seguintes artefatos:
 
-Os artefatos nomeiam as três personas abaixo. Não identificam nominalmente
-outros stakeholders, como patrocinadores, operadores de infraestrutura ou
-equipes de suporte; sua existência e responsabilidades permanecem por
-confirmar.
+| Fonte | Finalidade |
+| --- | --- |
+| `README.md` | Contexto geral e objetivo do sistema. |
+| `PRD.md` | Tecnologias, personas, regras de negócio, critérios de qualidade e entregáveis. |
+| `personas/solicitante.md` | Responsabilidades e restrições do Solicitante. |
+| `personas/responsavel.md` | Responsabilidades e restrições do Responsável. |
+| `personas/administrador.md` | Responsabilidades administrativas. |
+| `rfc/requisitos-funcionais.md` | Requisitos RF-01 a RF-20. |
+| `rfc/requisitos-nao-funcionais.md` | Requisitos RNF-01 a RNF-18. |
+| `RTM.md` | Matriz de rastreabilidade entre requisitos, riscos, testes e evidências, a ser mantida no repositório. |
 
-| Persona | Fatos documentados | Fontes |
-|---|---|---|
-| **Solicitante (USR-01)** | Professor ou coordenador. Consulta disponibilidade e cria, altera ou cancela as próprias reservas. Não aprova reservas de terceiros nem gerencia cadastros ou configurações globais. | [PRD.md](./PRD.md), seção 2; [solicitante.md](./personas/solicitante.md); RF-15 e RF-16 em [requisitos-funcionais.md](../rfc/requisitos-funcionais.md) |
-| **Responsável (USR-02)** | Gestor ou coordenador. Analisa solicitações especiais, aprova ou rejeita, valida alocação de docentes e acompanha retirada/devolução de materiais sob sua responsabilidade. Não administra globalmente cadastros e parâmetros. | [PRD.md](./PRD.md), seção 2; [responsavel.md](./personas/responsavel.md); RF-08, RF-10, RF-15 e RF-17 em [requisitos-funcionais.md](../rfc/requisitos-funcionais.md) |
-| **Administrador (USR-03)** | Gestor global. Gerencia salas, materiais, equipamentos, usuários/professores, bloqueios, manutenção, permissões e parâmetros do sistema. | [PRD.md](./PRD.md), seção 2; [administrador.md](./personas/administrador.md); RF-02, RF-15 e RF-18 em [requisitos-funcionais.md](../rfc/requisitos-funcionais.md) |
+Os identificadores RF e RNF não são globalmente únicos entre o PRD e os RFCs. A rastreabilidade deverá registrar o documento de origem, o identificador e, preferencialmente, uma descrição curta do requisito.
 
-## 3. Requisitos arquiteturalmente significativos
+## 3\. Contexto e stakeholders
 
-### Fatos
+### 3.1. Contexto do sistema
 
-1. **Autenticação e autorização:** autenticar com JWT; validar tokens em
-   operações protegidas; rejeitar token ausente, inválido ou expirado e
-   restringir ações por perfil ([PRD.md](./PRD.md), RF-01; RF-01, RF-15,
-   RF-16 e RF-19 em [requisitos-funcionais.md](../rfc/requisitos-funcionais.md);
-   RNF-01 em [requisitos-nao-funcionais.md](../rfc/requisitos-nao-funcionais.md)).
-2. **Integridade da agenda:** impedir sobreposição de reservas para o mesmo
-   recurso, professor ou espaço e impedir dupla alocação sob concorrência;
-   recursos em manutenção não podem ser reservados (RF-04, RF-06, RF-07 e
-   RF-09 no RFC funcional; RN-01 a RN-04 em [PRD.md](./PRD.md), seção 4;
-   RNF-02 no RFC não funcional).
-3. **Ciclo de vida e aprovação:** registrar estados de reserva e bloquear
-   transições inválidas; exigir aprovação de Responsável para recursos
-   restritos (RF-05 e RF-08 no RFC funcional; RN-05 a RN-08 em
-   [PRD.md](./PRD.md), seção 4).
-4. **Auditoria:** manter histórico de alterações e de transições de estado
-   com autoria, data e ação; o PRD exige registro imutável de mudanças de
-   estado (RF-11 no RFC funcional; RNF-12 no RFC não funcional; RN-09 em
-   [PRD.md](./PRD.md), seção 4).
-5. **Desempenho mensurável:** consultas têm máximo aceitável de 1 s e alvo de
-   500 ms; ações de reserva, cancelamento, alteração e cadastro de manutenção
-   têm máximo de 1 s e alvo de 500 ms; relatórios têm máximo de 5 s e alvo de
-   2,5 s (RNF-03 a RNF-05 no RFC não funcional).
-6. **Relatórios:** apresentar utilização, carga horária, estados de reservas,
-   conflitos evitados, movimentação de materiais e indicadores de manutenção;
-   filtros incluem período e recursos, com escopo de usuário e unidade também
-   mencionado nos critérios (RF-12 no RFC funcional).
-7. **Notificações e observabilidade:** registrar eventos operacionais e gerar
-   notificações simuladas para eventos importantes, sem exigir integração
-   externa para o fluxo principal (RF-17 no RFC funcional; RNF-15 e RNF-16 no
-   RFC não funcional).
-8. **Qualidade e testes:** cobrir regras de negócio, autorização, conflito,
-   concorrência e casos de borda; metas de cobertura de linha e branch são
-   80% , respectivamente. O PRD também exige evidência de TDD/BDD e
-   validação de qualidade no pipeline (RF-20 no RFC funcional e RNF-08 a
-   RNF-11 no RFC não funcional; RNF-03 a RNF-05, COV-01, COV-02 e QUAL-01 em
-   [PRD.md](./PRD.md), seções 5 e 6).
+A aplicação será executada localmente, utilizando Java, Spring Boot e banco de dados H2. A interface será renderizada pelo servidor, com HTML e CSS integrados à aplicação.
 
-### Atributos de qualidade e critérios documentados
+Não fazem parte do escopo inicial:
 
-| Atributo | Critério ou evidência existente | Origem |
-|---|---|---|
-| Segurança | JWT em operações protegidas; autorização por perfil; rejeição de credenciais inválidas; erros sem dados sensíveis. | RF-01, RF-15, RF-16 e RF-19 em [requisitos-funcionais.md](../rfc/requisitos-funcionais.md); RNF-01 e RNF-07 em [requisitos-nao-funcionais.md](../rfc/requisitos-nao-funcionais.md); SEC-01 e RISK-01 no [PRD.md](./PRD.md), seção 6 |
-| Integridade e confiabilidade | Sem dupla reserva; controle concorrente determinístico; conflitos e respostas previsíveis; integridade nos relatórios. | RF-06 e RF-07 em [requisitos-funcionais.md](../rfc/requisitos-funcionais.md); RNF-02 e RNF-17 em [requisitos-nao-funcionais.md](../rfc/requisitos-nao-funcionais.md); RN-02 e RN-03 no [PRD.md](./PRD.md) |
-| Desempenho | Consultas e ações: máximo 1 s, desejado 500 ms; relatórios: máximo 5 s, desejado 2,5 s. | RNF-03 a RNF-05 em [requisitos-nao-funcionais.md](../rfc/requisitos-nao-funcionais.md) |
-| Disponibilidade e escalabilidade | Evoluir módulos e manter estabilidade com crescimento, sem métrica quantitativa definida. | RNF-13 no RFC; objetivo de qualidade em [PRD.md](./PRD.md), seção 1 |
-| Auditabilidade e rastreabilidade | Registrar alterações, transições, data, responsável, ação e efeito; PRD requer imutabilidade para transições. | RF-11 em [requisitos-funcionais.md](../rfc/requisitos-funcionais.md); RNF-12 em [requisitos-nao-funcionais.md](../rfc/requisitos-nao-funcionais.md); RN-09 e RTM-01 em [PRD.md](./PRD.md) |
-| Observabilidade | Eventos de reserva, aprovação, rejeição, manutenção e auditoria; logs estruturados, rastreio e notificações simuladas. | RNF-15 e RNF-16 em [requisitos-nao-funcionais.md](../rfc/requisitos-nao-funcionais.md); RF-11 em [PRD.md](./PRD.md) |
-| Testabilidade e qualidade | Testes de carga, integração em ambiente realista, TDD/BDD, cobertura mínima, pipeline automatizado e matriz de rastreabilidade. | RF-20 em [requisitos-funcionais.md](../rfc/requisitos-funcionais.md); RNF-06 e RNF-08 a RNF-11 em [requisitos-nao-funcionais.md](../rfc/requisitos-nao-funcionais.md); RNF-01 a RNF-05, COV-01, COV-02, RTM-01 e QUAL-01 em [PRD.md](./PRD.md) |
-| Usabilidade e compatibilidade | Interface responsiva, mensagens compreensíveis e funcionalidades críticas acessíveis em diferentes tamanhos de tela. | RF-13 em [requisitos-funcionais.md](../rfc/requisitos-funcionais.md); RNF-14 em [requisitos-nao-funcionais.md](../rfc/requisitos-nao-funcionais.md); RF-13 em [PRD.md](./PRD.md) |
-| Manutenibilidade | Documentação e estrutura que permitam evolução e manutenção. | RF-14 em [requisitos-funcionais.md](../rfc/requisitos-funcionais.md); RNF-18 em [requisitos-nao-funcionais.md](../rfc/requisitos-nao-funcionais.md); entregáveis 3 e 5 em [PRD.md](./PRD.md) |
+- Hospedagem em nuvem ou infraestrutura distribuída.
+- Microsserviços ou comunicação entre serviços independentes.
+- Dependência obrigatória de APIs externas para reservas, aprovação ou notificações.
+- Aplicação móvel nativa.
+- Serviço externo de autenticação.
+- Serviço externo de mensageria.
 
-## 4. Drivers arquiteturais priorizados
+### 3.2. Personas
 
-Esta ordem é uma **priorização analítica inicial**, não uma decisão já aprovada
-nos documentos. Ela considera critérios explicitamente eliminatórios no PRD,
-regras de integridade e limites mensuráveis. Deve ser revisada com os
-stakeholders quando as perguntas abertas forem respondidas.
+| Perfil | Responsabilidades | Limites de autorização |
+| --- | --- | --- |
+| Solicitante | Consultar disponibilidade e criar, consultar, alterar ou cancelar as próprias reservas. | Não pode manipular reservas de terceiros nem administrar globalmente os recursos. |
+| Responsável | Analisar solicitações especiais, aprovar ou rejeitar solicitações autorizadas e registrar retiradas e devoluções. | Atua sobre solicitações e recursos sob sua responsabilidade; a definição desse vínculo é uma premissa deste documento. |
+| Administrador | Gerenciar usuários, recursos, agendas, bloqueios, manutenção e parâmetros globais. | Possui privilégios administrativos, mas não deve contornar validações de integridade, auditoria ou segurança. |
 
-| Prioridade | Driver | Implicação arquitetural a investigar | Origem |
-|---|---|---|---|
-| **P1 — Integridade da agenda** | Reservas sobrepostas e requisições simultâneas não podem ocupar o mesmo recurso/horário. | A validação de disponibilidade e a persistência da reserva precisam preservar atomicidade e produzir conflito determinístico sob concorrência. | RN-01 a RN-04 no [PRD.md](./PRD.md), seção 4; RF-04, RF-06, RF-07 e RF-09 em [requisitos-funcionais.md](../rfc/requisitos-funcionais.md); RNF-02 em [requisitos-nao-funcionais.md](../rfc/requisitos-nao-funcionais.md); RISK-01 no PRD, seção 6 |
-| **P1 — Segurança de identidade e escopo** | Operações protegidas exigem JWT e autorização por papel; solicitantes só manipulam as próprias reservas. | Autenticação, autorização e verificação de propriedade devem ocorrer antes da operação e ser verificáveis nos testes. | USR-01 a USR-03 e RF-01 no [PRD.md](./PRD.md); RF-01, RF-15, RF-16 e RF-19 em [requisitos-funcionais.md](../rfc/requisitos-funcionais.md); RNF-01 em [requisitos-nao-funcionais.md](../rfc/requisitos-nao-funcionais.md); RISK-01 no PRD, seção 6 |
-| **P1 — Limites de resposta** | Consultas e ações têm limite de 1 s; relatórios, 5 s, com alvos mais baixos. | Consultas, comandos e relatórios requerem medições separadas sob condições de teste ainda a definir. | RNF-03 a RNF-06 no [requisitos-nao-funcionais.md](../rfc/requisitos-nao-funcionais.md); RF-12 no [requisitos-funcionais.md](../rfc/requisitos-funcionais.md) |
-| **P2 — Ciclo de vida auditável** | Mudanças de estado devem obedecer ao fluxo e gerar histórico rastreável. | Transições, autorização de aprovação e auditoria precisam manter consistência entre si. | RF-05, RF-08 e RF-11 em [requisitos-funcionais.md](../rfc/requisitos-funcionais.md); RNF-12 em [requisitos-nao-funcionais.md](../rfc/requisitos-nao-funcionais.md); RN-05 a RN-09 no [PRD.md](./PRD.md), seção 4 |
-| **P2 — Evidência verificável de qualidade** | Cobertura, testes de negócio, testes de carga, CI e rastreabilidade são entregáveis/metas. | As decisões devem ser testáveis e produzir evidências ligadas aos requisitos e riscos. | RF-20 em [requisitos-funcionais.md](../rfc/requisitos-funcionais.md); RNF-06 e RNF-08 a RNF-11 em [requisitos-nao-funcionais.md](../rfc/requisitos-nao-funcionais.md); RNF-01 a RNF-05, COV-01, COV-02, RTM-01, QUAL-01 e entregáveis 4, 6 a 9 em [PRD.md](./PRD.md) |
-| **P2 — Operação observável** | Eventos e notificações simuladas devem apoiar diagnóstico e acompanhamento sem dependência externa obrigatória. | Definir eventos, dados de auditoria e destino observável das notificações sem pressupor serviço externo. | RNF-15 e RNF-16 em [requisitos-nao-funcionais.md](../rfc/requisitos-nao-funcionais.md); RF-11 em [PRD.md](./PRD.md); RF-17 em [requisitos-funcionais.md](../rfc/requisitos-funcionais.md) |
-| **P3 — Evolução e experiência multiplataforma** | A estrutura deve permitir evolução e a interface deve ser responsiva. | Evitar decisões que acoplem fluxos críticos a uma única forma de uso ou dificultem manutenção. | RNF-13, RNF-14 e RNF-18 em [requisitos-nao-funcionais.md](../rfc/requisitos-nao-funcionais.md); RF-13 e RF-14 em [requisitos-funcionais.md](../rfc/requisitos-funcionais.md) |
+O Administrador também será responsável pela governança da auditoria e pela aprovação das decisões administrativas do projeto, conforme o escopo acadêmico.
 
-## 5. Glossário
+## 4\. Estilo e topologia arquitetural
 
-| Termo | Significado nos artefatos |
-|---|---|
-| **Solicitante** | Professor ou coordenador que consulta recursos e gere suas próprias solicitações de reserva. |
-| **Responsável** | Gestor ou coordenador que analisa solicitações especiais, valida alocação e acompanha materiais sob sua responsabilidade. |
-| **Administrador** | Perfil de gestão global de cadastros, permissões, bloqueios, manutenção e parâmetros. |
-| **Recurso** | Elemento alocável mencionado nos documentos: sala/espaço, professor/docente, material ou equipamento. A equivalência e taxonomia completa não estão especificadas. |
-| **Reserva / solicitação de reserva** | Pedido de alocação de um ou mais recursos em um intervalo de tempo, sujeito a disponibilidade, autorização e estados. Os artefatos usam ambos os termos sem formalizar distinção. |
-| **Recurso restrito / solicitação especial** | Recurso que exige análise/aprovação de Responsável. Os critérios de classificação e a relação exata entre “restrito” e “especial” não estão definidos. |
-| **Bloqueio / manutenção** | Indisponibilidade de agenda vinculada a um recurso; reservas que intersectem período de manutenção devem ser impedidas. |
-| **Conflito / sobreposição** | Coincidência total ou parcial de intervalos para o mesmo recurso, professor ou espaço. A regra temporal geral está em RN-01 e RN-02 do PRD. |
-| **Notificação simulada** | Evento de notificação produzido pela aplicação para observabilidade, sem exigir integração externa no fluxo principal. |
-| **JWT** | Token definido como mecanismo de autenticação para requisições protegidas; formato de claims, emissão e ciclo de vida não especificados. |
+### 4.1. Decisão
 
-## 6. Fatos, lacunas, conflitos e suposições
+**AD-01 — Monólito modular Spring Boot.**
 
-### Fatos documentados
+A aplicação será implementada como um único processo executável, dividido em módulos com responsabilidades explícitas.
 
-- Os três perfis e seus escopos gerais são USR-01 a USR-03 do PRD e detalhados
-  nos arquivos de personas.
-- A ordem temporal de início e término está declarada em RN-01 do PRD; estados
-  nominais e alternativos, ordem do fluxo principal e imutabilidade de reservas
-  iniciadas estão em RN-05 a RN-09. Os RFCs detalham comportamentos
-  relacionados em RF-05, RF-06 e RF-11.
-- JWT, concorrência, limites de resposta, cobertura, testes, notificações
-  simuladas, auditoria e responsividade estão documentados nos requisitos
-  funcionais e não funcionais citados acima.
-- O README resume o objetivo do sistema, mas não define tecnologia ou
-  arquitetura.
+A comunicação entre módulos ocorrerá por chamadas internas a serviços de aplicação e casos de uso. Os endpoints HTTP serão utilizados para operações disponibilizadas pela interface ou por clientes autorizados.
 
-### Lacunas documentais
+Essa decisão evita a complexidade operacional de serviços distribuídos e mantém a aplicação compatível com as tecnologias definidas no PRD.
 
-- Não foi localizado registro independente de decisões arquiteturais, catálogo
-  de restrições ou documento separado de regras de negócio. As regras
-  identificadas estão na seção 4 do PRD e os requisitos detalhados estão nos
-  RFCs.
-- O PRD menciona `RTM.md` como entregável e define RTM-01, mas esse arquivo não
-  está entre os artefatos consultados.
-- Não estão definidos volumes de usuários, recursos, reservas, concorrência ou
-  dados; cenário, carga e ambiente para aferir as metas de tempo; nem
-  percentis, janela ou condições de medição.
-- Não estão especificados provedor/emissão/renovação/revogação de JWT,
-  autorização granular além dos perfis e propriedade, retenção/acesso à
-  auditoria, nem política de backup/recuperação.
-- Não está definido o grafo completo de transições entre estados, incluindo
-  em quais condições e por qual perfil uma reserva pode ser alterada,
-  cancelada, rejeitada ou marcada como não comparecimento.
-- A classificação de recurso restrito, o significado operacional de
-  “solicitação especial”, o modelo de unidades, a taxonomia dos recursos e a
-  semântica dos filtros de relatório não estão fechados.
-- Não estão definidos formato, persistência, consulta e destinatário das
-  notificações simuladas, nem se haverá integração externa opcional.
-- Embora o PRD registre Java, Spring Boot, H2 e HTML/CSS como tecnologias
-  principais, não há decisão documentada sobre hospedagem, topologia, estilo
-  arquitetural, protocolos ou limites entre componentes. Ferramentas citadas
-  para testes/entrega (por exemplo, JMeter, Testcontainers, WireMock, GitHub
-  Actions, JaCoCo e SonarCloud) não constituem, por si, uma decisão sobre a
-  arquitetura de produção.
-- Os documentos não indicam stakeholders além das três personas, nem
-  responsabilidades por operação, suporte ou aprovação das decisões.
+### 4.2. Visão lógica
 
-### Conflitos e inconsistências entre fontes
+```
+flowchart TB
+    U[Usuário]
+    UI[Interface HTML e CSS]
+    SEC[Spring Security e JWT]
+    WEB[Controladores e endpoints]
+    APP[Serviços de aplicação]
+    DOM[Regras de domínio]
+    REP[Repositórios]
+    DB[(Banco H2)]
+    AUD[Auditoria]
+    LOG[Logs e notificações simuladas]
 
-- **Identificadores RF/RNF não correspondem entre documentos.** No PRD,
-  RF-04 é ciclo de reservas e RF-05 é detecção de sobreposição; no RFC
-  funcional, RF-04 é agenda/disponibilidade e RF-05 é ciclo de vida. No PRD,
-  RNF-01 é robustez/desempenho; no RFC não funcional, RNF-01 é segurança.
-  Portanto, a rastreabilidade não pode usar apenas os identificadores.
-- **Escopo de notificação não está alinhado.** RF-11 do PRD admite notificação
-  simulada ou integração direta com API externa. RF-17 do RFC funcional
-  especifica notificação simulada para o resultado de aprovação/rejeição, e
-  RNF-16 do RFC não funcional diz que integração externa não é exigida para o
-  fluxo principal. Isso não esclarece se integração opcional é permitida ou
-  desejada.
-- **Filtros de relatório têm escopos diferentes.** RF-12 no RFC funcional
-  menciona filtros por período, usuário, sala, professor, material e status;
-  seus critérios de aceite mencionam data, unidade, recurso e status. A
-  equivalência e obrigatoriedade dos filtros não estão claras.
-- **Imutabilidade da auditoria tem escopos diferentes.** RF-11 do RFC
-  funcional pede registro imutável de alterações de estado, dados e eventos;
-  RNF-12 especifica persistência das alterações relevantes; RN-09 do PRD
-  exige imutabilidade para mudanças de estado. A imutabilidade para alterações
-  que não sejam transições de estado precisa ser reconciliada.
-- **Perfil do Administrador é amplo, sem regra granular equivalente.** O
-  arquivo da persona diz que não há restrição operacional relevante dentro do
-  escopo administrativo; RF-15 do RFC, por outro lado, exige acesso estrito
-  por perfil. Os documentos não definem limites adicionais para ações
-  administrativas.
+    U --> UI
+    UI --> SEC
+    SEC --> WEB
+    WEB --> APP
+    APP --> DOM
+    DOM --> REP
+    REP --> DB
+    APP --> AUD
+    AUD --> DB
+    APP --> LOG
+```
 
-### Suposições analíticas desta seção
+O diagrama representa a organização lógica proposta, não uma implementação já validada.
 
-- A ordenação P1/P2/P3 é uma proposta de priorização fundamentada nos
-  critérios do PRD e nos requisitos explícitos, não uma prioridade acordada
-  pelos stakeholders.
-- “Recurso” é usado como termo agregador para os tipos citados, sem afirmar
-  que possuem o mesmo modelo de dados ou ciclo operacional.
-- Uma meta de tempo só poderá ser considerada demonstrada após definição do
-  cenário e método de medição; esta seção não presume condições de carga.
+### 4.3. Módulos
 
-## 7. Perguntas abertas
+| Módulo | Responsabilidades |
+| --- | --- |
+| `identity` | Login, emissão de tokens, renovação, encerramento de sessão e identidade do usuário. |
+| `resources` | Cadastro, consulta, classificação e situação de salas, professores, materiais e equipamentos. |
+| `reservations` | Criação, alteração, cancelamento, consulta, aprovação e ciclo de vida das reservas. |
+| `availability` | Consulta de agendas, bloqueios, manutenção e verificação de conflitos. |
+| `movements` | Retirada, devolução e histórico de movimentação de materiais e equipamentos. |
+| `audit` | Registro e consulta de alterações relevantes e transições de estado. |
+| `reports` | Relatórios gerenciais, filtros e agregações. |
+| `notifications` | Produção de notificações simuladas por logs locais. |
+| `shared` | Componentes compartilhados estritamente necessários, como tratamento de erros e identificação de usuário autenticado. |
 
-1. Qual documento e versão prevalecem quando os identificadores RF/RNF ou os
-   critérios diferem entre o PRD e os RFCs? Deve ser criada uma matriz de
-   correspondência estável?
-2. A integração externa de notificações é permitida como extensão opcional,
-   ou o escopo deve permanecer exclusivamente simulado?
-3. Quais filtros de relatório são obrigatórios e como se relacionam unidade,
-   recurso, professor, material e usuário?
-4. Qual é o grafo completo de transições de reserva, incluindo atores
-   autorizados, condições, alteração e cancelamento em cada estado?
-5. Como são definidos recursos restritos e solicitações especiais? A aprovação
-   é exigida apenas para recursos restritos ou para outras situações?
-6. Quais volume, concorrência, ambiente, percentil e método devem caracterizar
-   cada meta de desempenho?
-7. Qual é a política de retenção, consulta e proteção dos registros de
-   auditoria, e quais alterações além de transições precisam ser imutáveis?
-8. Quais são o fluxo de emissão, expiração e revogação do JWT e as permissões
-   granulares esperadas para cada perfil?
-9. Qual é a taxonomia oficial de recursos e o significado de unidade nos
-   filtros e na administração?
-10. Quem são os stakeholders responsáveis por validar regras, prioridades,
-    operação e aceite arquitetural? Onde será mantido o registro de decisões
-    e a matriz RTM?
+Os módulos deverão evitar dependências circulares. As regras de domínio não devem depender diretamente de controladores HTTP ou de componentes de interface.
 
-## 8. Riscos iniciais
+### 4.4. Estrutura de pacotes proposta
 
-Os itens abaixo são riscos preliminares derivados dos requisitos e lacunas;
-não representam avaliação quantitativa de probabilidade.
+```
+src/
+├── main/
+│   ├── java/.../organizacaorecursos/
+│   │   ├── identity/
+│   │   │   ├── controller/
+│   │   │   ├── application/
+│   │   │   ├── domain/
+│   │   │   └── infrastructure/
+│   │   ├── resources/
+│   │   ├── reservations/
+│   │   ├── availability/
+│   │   ├── movements/
+│   │   ├── audit/
+│   │   ├── reports/
+│   │   ├── notifications/
+│   │   ├── shared/
+│   │   └── config/
+│   └── resources/
+│       ├── templates/
+│       ├── static/
+│       │   ├── css/
+│       │   └── js/
+│       └── application.yml
+└── test/
+    ├── java/.../organizacaorecursos/
+    │   ├── unit/
+    │   ├── integration/
+    │   ├── security/
+    │   └── e2e/
+    └── resources/
+```
 
-| Risco | Impacto potencial | Base documental |
-|---|---|---|
-| Corrida entre solicitações permitir dupla alocação. | Conflito real de agenda e falha em critério explicitamente eliminatório. | RN-02 e RN-03 do PRD; RF-07 e RNF-02 dos RFCs; RISK-01 no PRD |
-| Autorização ou verificação de propriedade incompleta. | Acesso indevido a reservas ou ações; falha em critério eliminatório. | RF-01, RF-15, RF-16 e RF-19; RNF-01; RISK-01 no PRD |
-| Metas de desempenho sem cenário de medição comum. | Resultados não reproduzíveis ou não comparáveis; aceite de desempenho inconclusivo. | RNF-03 a RNF-06; volumes e condições não definidos |
-| Divergência de estados e transições ser resolvida de forma diferente entre componentes e testes. | Reservas presas em estados ou ações inválidas aceitas/rejeitadas inconsistentemente. | RF-05, RN-05 a RN-08 e lacuna do grafo de transições |
-| Auditoria não atender ao significado de “imutável” ou não preservar autoria e efeito. | Perda de rastreabilidade e evidência insuficiente para análise de incidentes. | RF-11, RNF-12 e RN-09 |
-| Ambiguidade sobre integrações de notificação levar a escopo ou dependência externa inesperados. | Retrabalho ou dependência de serviço não requerida para o fluxo principal. | RF-11 do PRD; RF-17 e RNF-16 dos RFCs |
-| Diferenças de identificadores e critérios dificultarem rastreabilidade requisito-teste-risco. | Requisitos críticos podem não estar ligados às evidências exigidas. | RNF-01 a RNF-05 e RTM-01 no PRD; numeração RF/RNF nos RFCs |
-| Filtros e volumes de relatório não definidos impedirem validar o limite de resposta ou completude dos dados. | Relatórios inconsistentes ou aceitação ambígua. | RF-12 e RNF-05; critérios de filtro distintos no RFC funcional |
+A separação física dos diretórios poderá ser adaptada à organização real do código, desde que os limites de responsabilidade sejam preservados.
+
+## 5\. Modelo de domínio e persistência
+
+### 5.1. Decisão
+
+**AD-02 — H2 como banco relacional oficial do escopo acadêmico.**
+
+O H2 será utilizado para armazenar os dados da aplicação localmente. A configuração de execução deverá declarar explicitamente se o banco funcionará em memória ou em arquivo.
+
+Para a demonstração acadêmica, recomenda-se utilizar H2 em arquivo quando for necessário preservar os dados entre reinicializações. Um perfil de testes poderá utilizar um banco isolado, com dados preparados para cada execução.
+
+O uso de H2 não implica que dados de uma execução em memória sejam preservados após o encerramento da aplicação.
+
+### 5.2. Entidades conceituais
+
+| Entidade | Informações principais |
+| --- | --- |
+| `User` | Identificador, nome, login, senha armazenada por hash, perfil e situação. |
+| `Resource` | Identificador, tipo, descrição, localização, situação e classificação de restrição. |
+| `Reservation` | Solicitante, intervalo temporal, estado, finalidade e informações de aprovação. |
+| `ReservationResource` | Associação entre reserva e cada recurso alocado. |
+| `AvailabilityBlock` | Recurso, intervalo, tipo de bloqueio e justificativa. |
+| `Maintenance` | Recurso, período, situação e descrição da manutenção. |
+| `MaterialMovement` | Material, reserva, responsável, retirada, devolução e condição do item. |
+| `AuditEvent` | Ator, data, ação, entidade afetada, resultado e justificativa quando aplicável. |
+| `RefreshToken` | Identificador, usuário, hash do token, expiração, revogação e relação com sua família de renovação. |
+
+A separação entre `Reservation` e `ReservationResource` permite representar uma reserva que envolva mais de um recurso. Essa modelagem é uma decisão proposta e deverá ser simplificada se o escopo funcional aprovado exigir apenas um recurso por reserva.
+
+### 5.3. Regras de integridade
+
+- O término deve ser posterior ao início da reserva.
+- O sistema deve rejeitar sobreposição incompatível de intervalos.
+- A disponibilidade de todos os recursos associados deve ser verificada antes de confirmar a alocação.
+- Reservas não podem utilizar recursos indisponíveis por manutenção ou bloqueio.
+- A criação ou alteração da reserva e seus vínculos deve preservar a integridade transacional.
+- Transições de estado devem ser validadas pelo domínio.
+- A auditoria das transições deve ser persistida na mesma transação da mudança de estado.
+- Senhas e refresh tokens não devem ser armazenados em texto puro.
+
+## 6\. Autenticação e autorização
+
+### 6.1. Decisão
+
+**AD-03 — JWT com token de acesso de uma hora e refresh token.**
+
+A autenticação será implementada com Spring Security e JWT. O token de acesso será utilizado nas operações protegidas; o refresh token será utilizado exclusivamente para renovar a sessão.
+
+O JWT de acesso terá validade de 1 hora (3.600 segundos). A validade do refresh token será de 7 dias (604.800 segundos), como premissa acadêmica inicial.
+
+Esses valores são decisões propostas para o projeto, não exigências numéricas do PRD.
+
+### 6.2. Contrato do token de acesso
+
+As requisições protegidas deverão utilizar:
+
+```
+Authorization: Bearer <access_token>
+```
+
+O token deverá conter, no mínimo, os seguintes claims:
+
+| Claim | Exemplo | Finalidade |
+| --- | --- | --- |
+| `sub` | `8e...` (UUID completo) | Identificar inequivocamente o usuário. |
+| `roles` | `["SOLICITANTE"]` | Representar o perfil autorizado. |
+| `iss` | `organizacao-recursos` | Identificar o emissor confiável. |
+| `aud` | `organizacao-recursos-api` | Restringir o destinatário do token. |
+| `iat` | Timestamp UTC | Registrar a emissão. |
+| `exp` | Timestamp UTC | Definir a expiração. |
+| `jti` | UUID | Identificar o token individualmente. |
+
+Os timestamps deverão seguir a representação numérica em segundos desde a época Unix, conforme o padrão JWT.
+
+Os valores de `iss` e `aud` deverão ser idênticos aos configurados na validação. O exemplo de `sub` é ilustrativo: na implementação será utilizado um UUID válido.
+
+### 6.3. Algoritmo e chave
+
+A proposta inicial é utilizar RS256, com chave privada para emissão e chave pública para validação.
+
+Regras:
+
+- O algoritmo aceito deverá ser definido pela configuração da aplicação, nunca escolhido livremente com base no cabeçalho do token recebido.
+- A chave privada não deverá ser incluída no repositório.
+- Chaves de desenvolvimento deverão ser geradas localmente e armazenadas fora do controle de versão.
+- O sistema deverá validar assinatura, emissor, audiência, validade temporal e claims obrigatórios.
+- O token não deverá conter senha, segredo ou dados pessoais desnecessários.
+
+### 6.4. Refresh token
+
+O refresh token será um valor opaco, aleatório e criptograficamente seguro, sem necessidade de ser um JWT.
+
+A proposta é utilizar 256 bits de entropia, representados por uma codificação adequada para transporte HTTP.
+
+Fluxo de renovação:
+
+1. O usuário realiza login com suas credenciais.
+2. A aplicação emite o access token com validade de uma hora e o refresh token com validade de sete dias.
+3. Quando o access token expirar, o cliente solicita renovação utilizando o refresh token.
+4. O servidor valida o token, sua expiração, seu estado e sua associação ao usuário.
+5. O servidor invalida o refresh token utilizado e emite um novo access token e um novo refresh token.
+6. O cliente substitui os dois tokens pelos novos valores.
+7. Se o refresh token for inválido, expirado ou revogado, a renovação será rejeitada e será necessário autenticar novamente.
+
+O refresh token deverá ser armazenado no banco somente em forma de hash, com identificador, usuário, data de emissão, expiração, revogação e vínculo com a família de renovação.
+
+O sistema deverá permitir encerramento de sessão por revogação do refresh token. Se um token já utilizado for reapresentado, a aplicação deverá rejeitar a renovação e poderá revogar a família correspondente como proteção contra reutilização.
+
+A renovação concorrente deverá ser controlada transacionalmente para impedir que duas requisições utilizem com sucesso o mesmo refresh token.
+
+### 6.5. Endpoints de identidade propostos
+
+| Método | Endpoint | Acesso | Objetivo |
+| --- | --- | --- | --- |
+| `POST` | `/auth/login` | Público | Autenticar e emitir os tokens. |
+| `POST` | `/auth/refresh` | Público com refresh token válido | Renovar os tokens. |
+| `POST` | `/auth/logout` | Autenticado | Revogar a sessão de renovação. |
+| `GET` | `/auth/me` | Autenticado | Consultar a identidade e os perfis do usuário atual. |
+
+O refresh token deverá ser enviado no corpo da requisição de renovação, por HTTPS quando houver transporte pela rede. Como o escopo inicial é local, não haverá dependência de um provedor externo de identidade.
+
+Em uma interface web, os tokens deverão ser tratados com cuidado para reduzir exposição a scripts maliciosos. A implementação deverá definir o armazenamento do refresh token e adotar proteção contra CSRF se utilizar cookies. Tokens não deverão ser registrados em logs.
+
+### 6.6. Matriz inicial de autorização
+
+| Operação | Solicitante | Responsável | Administrador |
+| --- | --- | --- | --- |
+| Consultar disponibilidade | Permitido | Permitido | Permitido |
+| Criar reserva própria | Permitido | Conforme escopo aprovado | Conforme escopo administrativo aprovado |
+| Alterar ou cancelar reserva própria | Permitido, respeitando o estado | Conforme escopo aprovado | Conforme escopo administrativo aprovado |
+| Alterar reserva de terceiro | Negado | Apenas sob responsabilidade atribuída | Conforme regra administrativa aprovada |
+| Aprovar ou rejeitar solicitação especial | Negado | Permitido quando responsável pela solicitação | Não presumido |
+| Registrar retirada ou devolução | Negado, salvo futura regra explícita | Permitido no escopo de responsabilidade | Conforme regra administrativa aprovada |
+| Gerenciar usuários e recursos globalmente | Negado | Negado | Permitido |
+| Gerenciar manutenção e bloqueios globais | Negado | Negado, salvo delegação aprovada | Permitido |
+| Consultar relatórios gerenciais | Conforme escopo próprio aprovado | Permitido | Permitido |
+
+As operações marcadas como dependentes de aprovação funcional não devem receber permissões implícitas. O controle de autorização deverá estar centralizado no Spring Security e nas regras de acesso do serviço de aplicação.
+
+## 7\. Reservas, concorrência e integridade temporal
+
+### 7.1. Decisão
+
+**AD-04 — Validação de conflitos e persistência na mesma transação.**
+
+Uma consulta de disponibilidade anterior à gravação não é suficiente para impedir dupla reserva. Duas requisições podem consultar a mesma disponibilidade antes que qualquer uma persista a reserva.
+
+A implementação deverá combinar:
+
+- Transação para a operação de criação ou alteração.
+- Verificação dos intervalos de todos os recursos envolvidos.
+- Mecanismo de serialização ou controle de concorrência compatível com H2.
+- Tratamento de violações de integridade e conflitos concorrentes.
+- Testes que demonstrem o comportamento com requisições simultâneas.
+
+Para a primeira implementação, poderá ser utilizado um bloqueio transacional por recurso ou outra estratégia de serialização comprovadamente compatível com a persistência escolhida.
+
+Se houver múltiplos recursos envolvidos, a aquisição de bloqueios deverá seguir uma ordem determinística, como a ordenação dos identificadores, para reduzir o risco de deadlock.
+
+Uma restrição única convencional sobre recurso e horário não impede, isoladamente, todas as sobreposições entre intervalos arbitrários. A estratégia escolhida deverá ser validada especificamente para essa regra.
+
+### 7.2. Regra temporal
+
+A condição geral de conflito será:
+
+```
+inicio_existente < fim_novo
+AND
+fim_existente > inicio_novo
+```
+
+A expressão identifica interseção entre intervalos quando os intervalos são tratados como semiabertos, isto é, `[início, fim)`.
+
+Assim, uma reserva que termine às 10h não conflita com outra que comece às 10h, desde que o negócio adote intervalos semiabertos. Essa convenção é uma decisão proposta e deve ser documentada nos testes.
+
+### 7.3. Resultado de concorrência
+
+Em duas tentativas simultâneas para o mesmo recurso e período incompatível:
+
+- No máximo uma operação poderá confirmar a alocação.
+- A outra deverá ser rejeitada com resposta de conflito.
+- Nenhuma resposta poderá indicar sucesso se a transação não tiver sido confirmada.
+- A falha deverá produzir informação suficiente para diagnóstico sem expor detalhes internos.
+
+O teste deverá verificar o estado final do banco, e não apenas o código HTTP retornado.
+
+### 7.4. Manutenção e bloqueios
+
+Os períodos de manutenção e bloqueio deverão ser tratados como indisponibilidades temporais.
+
+A verificação deverá considerar interseção entre o período solicitado e o intervalo bloqueado. Se o recurso estiver indisponível em qualquer parte do intervalo, a reserva deverá ser rejeitada.
+
+## 8\. Ciclo de vida das reservas
+
+### 8.1. Estados documentados
+
+O PRD define os seguintes estados:
+
+- `SOLICITADA`
+- `APROVADA`
+- `EM_USO`
+- `CONCLUÍDA`
+- `REJEITADA`
+- `CANCELADA`
+- `NÃO COMPARECEU`
+
+O fluxo nominal é:
+
+```
+SOLICITADA -> APROVADA -> EM_USO -> CONCLUÍDA
+```
+
+### 8.2. Matriz inicial de transições
+
+A matriz abaixo constitui uma premissa acadêmica proposta, pois os documentos não definem todas as transições nem todos os atores autorizados.
+
+| Estado atual | Estado de destino | Condição proposta |
+| --- | --- | --- |
+| `SOLICITADA` | `APROVADA` | Aprovação por Responsável autorizado, quando aplicável. |
+| `SOLICITADA` | `REJEITADA` | Rejeição por Responsável autorizado. |
+| `SOLICITADA` | `CANCELADA` | Cancelamento pelo Solicitante proprietário. |
+| `APROVADA` | `EM_USO` | Início da utilização, após as verificações aplicáveis. |
+| `APROVADA` | `CANCELADA` | Cancelamento antes do início, conforme a política proposta. |
+| `APROVADA` | `NÃO COMPARECEU` | Registro por usuário autorizado após a ausência. |
+| `EM_USO` | `CONCLUÍDA` | Finalização da utilização. |
+
+Transições não listadas serão rejeitadas até que uma regra formal seja aprovada.
+
+Reservas em `EM_USO` não poderão ser excluídas. Alterações em reservas iniciadas deverão ser bloqueadas, salvo se uma regra funcional posterior definir explicitamente uma exceção auditável.
+
+### 8.3. Aprovação de recursos restritos
+
+Um recurso classificado como restrito não poderá avançar para `EM_USO` sem aprovação positiva de um Responsável autorizado.
+
+Para o escopo acadêmico, ficam propostas as seguintes regras:
+
+- A restrição será representada por um atributo explícito do recurso.
+- O Administrador será o único perfil autorizado a alterar essa classificação.
+- A aprovação será registrada na reserva, incluindo usuário, data, decisão e justificativa.
+- A ausência de aprovação não será interpretada como aprovação implícita.
+- A solicitação permanecerá rastreável enquanto estiver pendente.
+- A aprovação de um recurso restrito não dispensará a verificação de disponibilidade, manutenção ou conflito.
+
+A relação entre solicitação especial e recurso restrito será tratada como equivalente na primeira versão. Essa equivalência deverá ser revisada caso os stakeholders identifiquem outras categorias de solicitação especial.
+
+## 9\. Auditoria e notificações
+
+### 9.1. Auditoria
+
+**AD-05 — Auditoria persistente append-only para eventos críticos.**
+
+O registro de auditoria será persistido no H2. Os eventos de transição de estado deverão ser gravados na mesma transação da alteração correspondente.
+
+Cada evento deverá registrar, quando aplicável:
+
+- Identificador do evento.
+- Usuário responsável pela ação.
+- Data e hora em UTC.
+- Tipo de entidade e identificador afetado.
+- Ação realizada.
+- Estado anterior e estado posterior.
+- Resultado da operação.
+- Justificativa quando exigida.
+- Identificador de correlação da requisição.
+
+A aplicação não deverá disponibilizar operações comuns para editar ou excluir eventos de auditoria. A política de retenção e o acesso administrativo deverão ser documentados.
+
+A imutabilidade será garantida no escopo da aplicação por meio de operações exclusivamente de inclusão e de restrições de acesso. Isso não equivale a uma garantia criptográfica contra alguém com controle direto sobre o arquivo do banco; essa limitação é aceitável para o escopo acadêmico.
+
+### 9.2. Notificações simuladas
+
+**AD-06 — Notificações por logs locais.**
+
+As notificações serão simuladas exclusivamente por logs locais da aplicação, sem integração externa e sem persistência própria de notificações.
+
+Os eventos mínimos serão:
+
+- Solicitação criada.
+- Reserva aprovada ou rejeitada.
+- Reserva cancelada.
+- Início e conclusão da utilização.
+- Manutenção cadastrada.
+- Retirada ou devolução registrada.
+- Falha crítica de operação.
+
+A emissão da notificação não poderá determinar o sucesso da reserva ou da aprovação. Uma falha de logging não deverá reverter uma operação de negócio já confirmada.
+
+## 10\. Relatórios
+
+### 10.1. Relatórios obrigatórios
+
+O módulo de relatórios deverá oferecer:
+
+- Utilização por recurso.
+- Carga horária alocada por sala, professor e material.
+- Quantidade de reservas por estado.
+- Volume de conflitos evitados.
+- Histórico de retirada e devolução.
+- Indicadores de manutenção e bloqueios.
+
+### 10.2. Filtros propostos
+
+Para harmonizar os critérios do RFC funcional, os filtros iniciais serão:
+
+- Data inicial e final.
+- Unidade, quando existir no cadastro.
+- Tipo e identificador do recurso.
+- Professor ou usuário, conforme o relatório.
+- Estado da reserva.
+
+O relatório deverá aplicar autorização ao conjunto de dados consultado. O Administrador e o Responsável poderão acessar os relatórios gerenciais no escopo aprovado.
+
+O significado de unidade será simplificado inicialmente para um identificador organizacional opcional associado aos recursos. Caso não exista uma entidade de unidade no domínio aprovado, esse filtro deverá permanecer indisponível até sua implementação.
+
+Os relatórios deverão permitir apresentação legível dos resultados e, quando viável no escopo acadêmico, exportação em CSV.
+
+## 11\. Desempenho e volumes de referência
+
+### 11.1. Metas documentadas
+
+| Operação | Limite máximo | Alvo |
+| --- | --- | --- |
+| Consultas de disponibilidade e recursos | 1 segundo | 500 ms |
+| Criação, alteração e cancelamento de reservas | 1 segundo | 500 ms |
+| Cadastro de manutenção | 1 segundo | 500 ms |
+| Relatórios | 5 segundos | 2,5 segundos |
+
+Essas metas são provenientes dos RFCs não funcionais. Elas não definem, por si só, volume de dados, carga simultânea ou percentil de aceite.
+
+### 11.2. Perfil acadêmico de referência
+
+Para permitir a preparação inicial dos testes, propõe-se o seguinte cenário de referência:
+
+| Parâmetro | Valor inicial proposto |
+| --- | --- |
+| Usuários cadastrados | 100 |
+| Salas | 50 |
+| Professores | 100 |
+| Materiais e equipamentos | 200 |
+| Reservas históricas | 10.000 |
+| Registros de auditoria | 20.000 |
+| Usuários virtuais simultâneos | 20 |
+| Taxa-alvo de requisições | 10 requisições/s |
+| Duração medida por cenário | 5 minutos |
+| Aquecimento | 1 minuto |
+| Repetições por cenário | 3 |
+| Percentil proposto para aceite | p95 |
+
+Todos os números desta tabela são premissas de teste para o projeto acadêmico, não fatos do PRD nem previsões de uso real. Poderão ser alterados se o ambiente disponível não comportar o cenário.
+
+Para o teste crítico de concorrência, deverá existir um cenário específico com pelo menos 10 requisições simultâneas disputando o mesmo recurso e intervalo, repetido em múltiplas execuções.
+
+O critério principal desse cenário será a integridade: nenhuma execução poderá resultar em dupla alocação confirmada. O tempo de resposta será registrado separadamente.
+
+### 11.3. Método de aferição
+
+Os testes deverão registrar:
+
+- Hardware e sistema operacional.
+- Versão do Java e do Spring Boot.
+- Configuração do H2 e modo de execução.
+- Quantidade e distribuição dos dados.
+- Script e versão do teste.
+- Tempo de aquecimento e duração medida.
+- Média, p95, máximo, throughput e taxa de erros.
+- Número de conflitos esperados e efetivamente rejeitados.
+- Commit avaliado e resultado final.
+
+O cenário será considerado aprovado quando o p95 respeitar o limite máximo correspondente e a integridade funcional permanecer correta. Os alvos de desempenho deverão ser reportados separadamente.
+
+A adoção do p95 é uma proposta para tornar o aceite reproduzível. Deverá ser identificada como convenção acadêmica no relatório final.
+
+## 12\. Estratégia de testes e qualidade
+
+### 12.1. Pirâmide de testes
+
+| Tipo | Objetivo |
+| --- | --- |
+| Unitários | Validar regras de domínio e casos de borda isoladamente. |
+| Parametrizados | Cobrir diferentes combinações de intervalos, perfis e estados. |
+| Integração | Validar persistência, transações, repositórios e configuração de segurança. |
+| Segurança | Verificar tokens ausentes, inválidos, expirados, perfis insuficientes e propriedade da reserva. |
+| Concorrência | Comprovar que requisições simultâneas não produzem dupla alocação. |
+| Caixa-preta | Validar contratos HTTP, respostas e regras observáveis externamente. |
+| End-to-end | Executar fluxos completos, incluindo login, reserva, aprovação e conclusão. |
+| Carga | Medir as metas de desempenho com Apache JMeter. |
+
+### 12.2. Metas de cobertura
+
+- Cobertura de linhas mínima: 80%.
+- Cobertura de branches mínima: 70%.
+- Ferramenta de cobertura: JaCoCo.
+- Análise estática: SonarCloud.
+- Integração contínua: GitHub Actions.
+- Desenvolvimento orientado a testes: evidência de TDD ou BDD em pelo menos uma funcionalidade crítica.
+
+Os testes deverão conter asserções reais de negócio. Cobertura numérica isolada não comprova qualidade.
+
+### 12.3. Testcontainers e WireMock
+
+O PRD exige ambiente realista para testes de integração, uso de Testcontainers para persistência e WireMock quando houver integrações externas críticas.
+
+Como a persistência oficial do projeto é H2 local e não há integração externa obrigatória, a configuração de testes deverá documentar explicitamente a estratégia adotada.
+
+A primeira opção será executar testes de integração contra um H2 isolado e reproduzível. Para atender literalmente ao requisito de Testcontainers, deverá ser avaliada e documentada uma configuração de contêiner compatível com H2 ou uma alternativa formalmente aprovada pelos responsáveis pelo projeto. Não se deverá declarar o requisito atendido apenas porque os testes utilizam H2 em memória.
+
+O WireMock será utilizado caso exista uma integração HTTP a simular. Se nenhuma integração externa fizer parte do escopo, essa condição deverá ser registrada na matriz de rastreabilidade, sem inventar uma dependência de produção.
+
+### 12.4. Pipeline
+
+O GitHub Actions deverá executar em cada pull request:
+
+1. Checkout do repositório.
+2. Configuração da versão de Java adotada.
+3. Compilação.
+4. Testes unitários e parametrizados.
+5. Testes de integração e segurança.
+6. Verificação de cobertura com JaCoCo.
+7. Análise estática e Quality Gate do SonarCloud, conforme a configuração do projeto.
+8. Publicação dos relatórios de execução como artefatos do pipeline.
+
+A falha de compilação, de testes críticos ou de verificações obrigatórias deverá impedir a aprovação do pipeline.
+
+Os testes de carga poderão ser executados em etapa específica, com script e relatório versionados. A execução em todo pull request somente deverá ser adotada se o custo e a duração forem compatíveis com o ambiente acadêmico.
+
+## 13\. Tratamento de erros e observabilidade
+
+### 13.1. Contratos de erro
+
+A API deverá utilizar respostas consistentes, por exemplo:
+
+| Situação | Código HTTP proposto |
+| --- | --- |
+| Requisição inválida | 400 |
+| Não autenticado | 401 |
+| Sem permissão | 403 |
+| Recurso inexistente | 404 |
+| Conflito de reserva | 409 |
+| Erro inesperado | 500 |
+
+As respostas não deverão conter stack traces, senhas, tokens, consultas SQL, caminhos internos ou detalhes sensíveis.
+
+### 13.2. Logs estruturados
+
+Os logs deverão registrar, quando aplicável:
+
+- Data e hora.
+- Nível do evento.
+- Identificador de correlação.
+- Operação.
+- Resultado.
+- Duração.
+- Código de erro.
+- Identificador da entidade envolvida, evitando dados pessoais desnecessários.
+
+Credenciais, tokens integrais, chaves privadas e hashes de refresh token não deverão ser registrados.
+
+As notificações simuladas deverão compartilhar o contexto de correlação da operação, sem se tornarem uma dependência para a confirmação transacional.
+
+## 14\. Segurança de entrada e aplicação
+
+A implementação deverá:
+
+- Validar entradas com Bean Validation e regras específicas de domínio.
+- Rejeitar intervalos temporais inválidos.
+- Aplicar autorização antes de executar operações protegidas.
+- Derivar o usuário autenticado do contexto de segurança, e não de identificadores fornecidos livremente pelo cliente.
+- Armazenar senhas com algoritmo apropriado de hash, como BCrypt.
+- Não armazenar senhas em texto puro.
+- Configurar CORS de forma restritiva quando necessário.
+- Adotar proteção CSRF se a autenticação utilizar cookies enviados automaticamente pelo navegador.
+- Utilizar consultas parametrizadas e mecanismos seguros de persistência.
+- Tratar exceções centralmente.
+- Manter segredos e chaves fora do repositório.
+- Validar os dados novamente na camada de domínio quando necessário para preservar invariantes.
+
+O sistema deverá manter a autorização por perfil separada das verificações de propriedade e responsabilidade. Ter um papel autorizado não significa, automaticamente, poder alterar qualquer reserva.
+
+## 15\. Decisões arquiteturais registradas
+
+| ID | Decisão | Motivo | Consequência principal |
+| --- | --- | --- | --- |
+| AD-01 | Monólito modular Spring Boot | Simplicidade operacional e aderência ao PRD. | Um único processo executável com módulos separados. |
+| AD-02 | H2 relacional local | Tecnologia de persistência documentada. | Limites de durabilidade e concorrência devem ser validados no H2. |
+| AD-03 | JWT de acesso de 1 hora e refresh token de 7 dias | Definir autenticação e renovação de sessão. | Necessidade de armazenar e revogar refresh tokens com segurança. |
+| AD-04 | Validação transacional de reservas | Prevenir dupla alocação e inconsistências. | Exige estratégia de concorrência e testes reais. |
+| AD-05 | Auditoria persistente append-only | Preservar rastreabilidade das alterações críticas. | A aplicação não deve oferecer edição ou exclusão comum de eventos. |
+| AD-06 | Notificações simuladas por logs locais | Evitar dependências externas no fluxo principal. | Não haverá consulta ou persistência independente de notificações. |
+| AD-07 | Relatórios com filtros e leitura separada | Atender aos relatórios obrigatórios e facilitar aferição de desempenho. | Os filtros dependem da taxonomia funcional aprovada. |
+| AD-08 | Testes automatizados e CI | Demonstrar evidências verificáveis de qualidade. | Pipeline e relatórios devem ser mantidos no repositório. |
+| AD-09 | Cenário acadêmico de carga documentado | Tornar os testes reproduzíveis sem inventar demanda real. | Os valores serão tratados como premissas, não como requisitos de negócio. |
+
+As decisões são propostas documentais até serem incorporadas ao processo de revisão do projeto. Cada ADR definitivo deverá registrar alternativas consideradas, consequências, riscos, evidências e condições de revisão.
+
+## 16\. Riscos e mitigação
+
+| Risco | Impacto | Mitigação |
+| --- | --- | --- |
+| Dupla reserva sob concorrência | Violação de regra eliminatória. | Controle transacional, serialização e testes concorrentes. |
+| Falha de autorização | Exposição ou modificação indevida de dados. | Spring Security, verificação de propriedade e testes negativos. |
+| Uso indevido de refresh token | Renovação não autorizada de sessão. | Hash persistido, rotação, expiração, revogação e proteção contra reutilização. |
+| Transições inconsistentes | Reservas em estados inválidos. | Matriz única de transições e testes de domínio. |
+| Auditoria incompleta | Perda de rastreabilidade. | Persistência transacional e testes de autoria e histórico. |
+| Metas de desempenho sem cenário comum | Evidências não comparáveis. | Scripts versionados, ambiente documentado e percentil explícito. |
+| Divergência entre PRD e RFCs | Requisitos ou testes incorretos. | Matriz de correspondência e decisões registradas. |
+| Cobertura artificial | Quality Gate sem evidência real de qualidade. | Asserções de negócio e testes críticos rastreados. |
+| Falha no ambiente de integração | Pipeline não reproduzível. | Documentação de configuração, dados de teste e dependências. |
+
+## 17\. Rastreabilidade dos principais requisitos
+
+| Requisito de origem | Decisão ou componente | Evidência esperada |
+| --- | --- | --- |
+| PRD RF-01; RFC RF-01 e RF-19 | `identity`, Spring Security e JWT | Testes de login, expiração, assinatura e autorização. |
+| RFC RF-02 e RF-03 | `resources` | Testes de cadastro, filtros e disponibilidade. |
+| PRD RN-01 a RN-04; RFC RF-04, RF-06, RF-07 e RF-09 | `reservations` e `availability` | Testes temporais, manutenção e concorrência. |
+| PRD RN-05 a RN-09; RFC RF-05 e RF-11 | `reservations` e `audit` | Testes de transição, imutabilidade e autoria. |
+| RFC RF-08 e RF-17 | Aprovação de recursos restritos | Testes de autorização e bloqueio sem aprovação. |
+| RFC RF-10 | `movements` | Testes de retirada, devolução e histórico. |
+| RFC RF-12 | `reports` | Testes de filtros, agregações, consistência e tempo de resposta. |
+| PRD RF-13; RFC RF-13 | Interface server-side | Testes dos fluxos e verificação de responsividade. |
+| PRD RNF-01 a RNF-05; RFC RNF-03 a RNF-06 | Testes de carga e pipeline | Relatórios do JMeter e evidências de CI. |
+| PRD COV-01, COV-02 e QUAL-01; RFC RNF-10 e RNF-11 | Suíte de testes | Relatório JaCoCo e evidências de asserções de negócio. |
+| PRD RTM-01 | `RTM.md` | Matriz completa de requisito, risco, teste e evidência. |
+| RFC RNF-15 e RNF-16 | `audit` e `notifications` | Logs estruturados e testes de eventos. |
+
+A matriz completa deverá ser mantida no arquivo `RTM.md`, incluindo os requisitos restantes, riscos, identificadores dos testes e links para evidências.
+
+## 18\. Entregáveis arquiteturais
+
+O projeto deverá manter:
+
+- `docs/arquitetura.md`: este documento.
+- `docs/adr/`: decisões arquiteturais individuais.
+- `docs/diagramas/`: diagramas C4 e sequências críticas.
+- `RTM.md`: matriz de rastreabilidade.
+- `README.md`: instalação, execução e fluxos principais.
+- Configuração do GitHub Actions.
+- Relatórios JaCoCo e SonarCloud.
+- Scripts e relatórios do JMeter.
+- Suíte automatizada de testes.
+- Registro de defeitos e relatório final de qualidade.
+
+Diagramas mínimos:
+
+- C4 — Contexto.
+- C4 — Componentes.
+- Sequência — Login e renovação do JWT.
+- Sequência — Criação de reserva com concorrência.
+- Sequência — Aprovação de recurso restrito.
+- Sequência — Retirada e devolução de material.
+
+A árvore de utilidade deverá relacionar os atributos de qualidade aos cenários mensuráveis, critérios de sucesso e riscos correspondentes.
+
+## 19\. Premissas acadêmicas e limites
+
+As decisões seguintes são adotadas para permitir uma implementação inicial coerente:
+
+- Access token com validade de 1 hora.
+- Refresh token com validade de 7 dias e rotação a cada renovação.
+- JWT assinado com RS256.
+- H2 local como banco oficial do projeto.
+- Intervalos de reserva tratados como `[início, fim)`.
+- Recurso restrito representado por classificação explícita.
+- Solicitação especial tratada inicialmente como solicitação de recurso restrito.
+- Apenas Responsáveis autorizados podem aprovar recursos restritos.
+- Transições não definidas na matriz serão rejeitadas.
+- Notificações simuladas serão produzidas por logs locais.
+- Os números de volume e carga da seção 11 são dados de teste acadêmicos, não previsões reais.
+- O percentil p95 será utilizado como critério inicial de avaliação de desempenho.
+
+Essas premissas deverão ser identificadas como decisões do projeto, não como requisitos extraídos literalmente do PRD.
+
+## 20\. Conclusão
+
+A arquitetura proposta utiliza um monólito modular com Java, Spring Boot e H2, mantendo a complexidade compatível com um projeto acadêmico e priorizando as regras eliminatórias: execução da aplicação, autorização correta e prevenção de dupla reserva.
+
+O JWT com acesso de uma hora e refresh token rotativo define o ciclo inicial de autenticação. A persistência transacional, a auditoria, a matriz de estados e os testes de concorrência deverão ser implementados e validados antes de considerar os riscos críticos resolvidos.
+
+A documentação arquitetural somente será considerada completa quando os diagramas, os ADRs aprovados, a matriz de rastreabilidade e as evidências automatizadas estiverem efetivamente presentes no repositório.
+
+A conclusão da documentação não significa que a arquitetura já esteja implementada ou que os critérios de aceite tenham sido demonstrados.
