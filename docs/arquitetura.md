@@ -1,9 +1,3 @@
-Abaixo está o conteúdo em Markdown puro, pronto para copiar e salvar como `docs/arquitetura.md`.
-
-Como o documento é extenso, copie o conteúdo do bloco inteiro e salve com codificação UTF-8.
-
-Escrita
-
 # Arquitetura — Sistema de Organização de Recursos
 
 **Status:** Proposta arquitetural para projeto acadêmico\
@@ -87,29 +81,46 @@ Essa decisão evita a complexidade operacional de serviços distribuídos e mant
 
 ### 4.2. Visão lógica
 
-```
+```mermaid
 flowchart TB
-    U[Usuário]
-    UI[Interface HTML e CSS]
-    SEC[Spring Security e JWT]
-    WEB[Controladores e endpoints]
-    APP[Serviços de aplicação]
-    DOM[Regras de domínio]
-    REP[Repositórios]
-    DB[(Banco H2)]
-    AUD[Auditoria]
-    LOG[Logs e notificações simuladas]
+    subgraph Apresentacao["Camada de apresentação"]
+        U[Usuário]
+        UI[Interface HTML e CSS]
+    end
+
+    subgraph Seguranca["Camada de segurança"]
+        SEC[Spring Security e JWT]
+    end
+
+    subgraph API["Camada de API"]
+        WEB[Controladores e endpoints]
+    end
+
+    subgraph Aplicacao["Camada de aplicação e domínio"]
+        APP[Serviços de aplicação]
+        DOM[Regras de domínio]
+    end
+
+    subgraph Persistencia["Camada de persistência"]
+        REP[Repositórios]
+        DB[(Banco H2)]
+    end
+
+    subgraph Transversal["Serviços transversais"]
+        AUD[Auditoria]
+        LOG[Logs e notificações simuladas]
+    end
 
     U --> UI
-    UI --> SEC
-    SEC --> WEB
+    UI --> WEB
+    SEC -.->|intercepta e valida| WEB
     WEB --> APP
     APP --> DOM
     DOM --> REP
     REP --> DB
     APP --> AUD
     AUD --> DB
-    APP --> LOG
+    APP -.->|emite eventos| LOG
 ```
 
 O diagrama representa a organização lógica proposta, não uma implementação já validada.
@@ -166,6 +177,296 @@ src/
 ```
 
 A separação física dos diretórios poderá ser adaptada à organização real do código, desde que os limites de responsabilidade sejam preservados.
+
+### 4.5. Diagramas C4 e de sequência
+
+#### 4.5.1. C4 — Contexto
+
+```mermaid
+flowchart LR
+    subgraph Sistema["Sistema de Organizacao de Recursos (monolito Spring Boot)"]
+        UI[Interface HTML e CSS]
+        API[Endpoints HTTP e autenticacao]
+        SVC[Servicos de aplicacao e dominio]
+        DB[(Banco H2)]
+    end
+
+    US[Usuario - Solicitante]
+    UR[Usuario - Responsavel]
+    UA[Usuario - Administrador]
+
+    US -->|consultar disponibilidade e gerenciar reservas proprias| UI
+    UR -->|aprovar solicitacoes e registrar retiradas e devolucoes| UI
+    UA -->|gerenciar usuarios, recursos, manutencao e parametros| UI
+
+    UI --> API
+    API --> SVC
+    SVC --> DB
+```
+
+#### 4.5.2. C4 — Componentes
+
+```mermaid
+flowchart LR
+    subgraph App["Aplicação Spring Boot"]
+        subgraph API["Camada de API / controladores"]
+            CId[identity]
+            CRe[resources]
+            CRes[reservations]
+            CAv[availability]
+            CMo[movements]
+            CAu[audit]
+            CRp[reports]
+            CNo[notifications]
+        end
+
+        subgraph SV["Camada de serviços de aplicação"]
+            SId[identity]
+            SRe[resources]
+            SRes[reservations]
+            SAv[availability]
+            SMo[movements]
+            SAu[audit]
+            SRp[reports]
+        end
+
+        subgraph DM["Camada de domínio"]
+            DId[identity]
+            DRe[resources]
+            DRes[reservations]
+            DAv[availability]
+            DMo[movements]
+        end
+
+        subgraph IR["Camada de infraestrutura / persistência"]
+            RId[(repositório identity)]
+            RRe[(repositório resources)]
+            RRes[(repositório reservations)]
+            RAv[(repositório availability)]
+            RMu[(repositório movements)]
+            RAu[(repositório audit)]
+            DB[(H2)]
+        end
+
+        subgraph TR["Preocupações transversais"]
+            Sec[Spring Security / JWT]
+            Sh[shared]
+            Lo[logs / notificações simuladas]
+        end
+    end
+
+    API --> SV
+    SV --> DM
+    DM --> IR
+    IR --> DB
+    SV --> Sec
+    SV --> Lo
+    Sh -.->|utilizado por| API
+    Sh -.->|utilizado por| SV
+```
+
+#### 4.5.3. Sequência — Login e renovação do JWT
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as Usuário
+    participant UI as Interface HTML/CSS
+    participant WEB as Controlador /auth
+    participant SEC as Spring Security + JWT
+    participant ID as Serviço identity
+    participant REP as Repositório
+    participant DB[(H2)]
+
+    U->>UI: preenche credenciais
+    UI->>WEB: POST /auth/login
+    WEB->>SEC: validar credenciais
+    SEC->>ID: autenticar usuário
+    ID->>REP: buscar usuário por login
+    REP->>DB: SELECT
+    DB-->>REP: dados do usuário
+    REP-->>ID: usuário encontrado
+    ID->>ID: gerar access token (JWT, 1 h) e refresh token (opaco, 7 d)
+    ID->>REP: persistir hash do refresh token
+    REP->>DB: INSERT
+    DB-->>REP: ok
+    ID-->>WEB: par de tokens
+    WEB-->>UI: 200 + tokens
+    UI-->>U: sessão iniciada
+
+    note over U, DB: Renovação de sessão
+    UI->>WEB: POST /auth/refresh (refresh token)
+    WEB->>SEC: validar refresh token
+    SEC->>ID: renovar sessão
+    ID->>REP: verificar hash, expiração e revogação
+    REP->>DB: SELECT
+    DB-->>REP: registro do token
+    REP-->>ID: token válido
+    ID->>REP: invalidar token antigo (rotação)
+    ID->>REP: persistir novo refresh token
+    REP->>DB: UPDATE / INSERT
+    DB-->>REP: ok
+    ID-->>WEB: novo par de tokens
+    WEB-->>UI: 200 + novos tokens
+    UI-->>U: sessão renovada
+```
+
+#### 4.5.4. Sequência — Criação de reserva com concorrência
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U1 as Solicitante A
+    actor U2 as Solicitante B
+    participant UI as Interface
+    participant WEB as Controlador reservas
+    participant SVC as Serviço reservations
+    participant DOM as Regras de domínio
+    participant LOCK as Controle de concorrência
+    participant REP as Repositório
+    participant DB[(H2)]
+    participant AUD as Auditoria
+
+    U1->>UI: escolher recurso e intervalo
+    UI->>WEB: POST /reservations
+    WEB->>SVC: criar reserva (recurso X, [t1, t2))
+    SVC->>DOM: verificar disponibilidade e conflitos
+    DOM->>LOCK: adquirir bloqueio do recurso X (ordem por ID)
+    LOCK-->>DOM: bloqueio concedido
+    DOM->>DOM: regra [início, fim) — sem sobreposição
+    DOM->>REP: verificar reservas e manutenção de X
+    REP->>DB: SELECT ... FOR UPDATE
+    DB-->>REP: sem conflito
+    REP-->>DOM: disponível
+    SVC->>REP: INSERT Reservation + ReservationResource
+    REP->>DB: INSERT
+    DB-->>REP: ok
+    SVC->>AUD: registrar evento de transição (mesma transação)
+    AUD->>DB: INSERT AuditEvent
+    DB-->>AUD: ok
+    DB-->>REP: COMMIT
+    REP-->>SVC: reserva confirmada
+    SVC-->>WEB: 201 Created
+    WEB-->>UI: reserva criada
+    UI-->>U1: confirmação
+
+    note over U2, DB: Requisição concorrente (mesmo recurso e intervalo)
+    U2->>UI: escolher mesmo recurso e intervalo sobreposto
+    UI->>WEB: POST /reservations
+    WEB->>SVC: criar reserva (recurso X, [t1, t2))
+    SVC->>DOM: verificar disponibilidade
+    DOM->>LOCK: tentar adquirir bloqueio do recurso X
+    alt bloqueio indisponível
+        DOM-->>SVC: conflito de bloqueio
+        SVC-->>WEB: 409 Conflict
+        WEB-->>UI: conflito de reserva
+        UI-->>U2: reserva rejeitada
+    end
+```
+
+#### 4.5.5. Sequência — Aprovação de recurso restrito
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Admin as Administrador
+    actor Resp as Responsável
+    participant UI as Interface
+    participant WEB as Controlador
+    participant SVC as Serviço reservations
+    participant DOM as Regras de domínio
+    participant REP as Repositório
+    participant DB[(H2)]
+    participant AUD as Auditoria
+
+    Admin->>UI: classificar recurso como restrito
+    UI->>WEB: PATCH /resources/{id}
+    WEB->>SVC: alterar classificação de restrição
+    SVC->>DOM: validar perfil ADMINISTRADOR
+    DOM-->>SVC: perfil autorizado
+    SVC->>REP: atualizar Resource.restrito = true
+    REP->>DB: UPDATE
+    DB-->>REP: ok
+    REP-->>SVC: atualizado
+    SVC-->>WEB: 200 OK
+    WEB-->>UI: recurso classificado
+    UI-->>Admin: confirmação
+
+    note over Resp, DB: Solicitação de recurso restrito
+    Resp->>UI: criar reserva de recurso restrito
+    UI->>WEB: POST /reservations
+    WEB->>SVC: criar reserva (estado SOLICITADA)
+    SVC->>REP: INSERT Reservation
+    REP->>DB: INSERT
+    DB-->>REP: ok
+    SVC-->>WEB: 201 Created (pendente)
+    WEB-->>UI: reserva solicitada
+    UI-->>Resp: confirmação
+
+    Resp->>UI: aprovar recurso restrito na reserva
+    UI->>WEB: POST /reservations/{id}/approve
+    WEB->>SVC: aprovar recurso restrito
+    SVC->>DOM: verificar perfil RESPONSAVEL e responsabilidade
+    DOM-->>SVC: autorizado
+    SVC->>DOM: validar transição SOLICITADA -> APROVADA
+    DOM-->>SVC: transição válida
+    SVC->>REP: atualizar estado da reserva e aprovação
+    SVC->>AUD: registrar transição e aprovação (mesma transação)
+    REP->>DB: UPDATE + INSERT AuditEvent
+    DB-->>REP: ok
+    SVC-->>WEB: 200 OK
+    WEB-->>UI: reserva aprovada
+    UI-->>Resp: confirmação
+```
+
+#### 4.5.6. Sequência — Retirada e devolução de material
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Resp as Responsável
+    participant UI as Interface
+    participant WEB as Controlador movements
+    participant SVC as Serviço movements
+    participant DOM as Regras de domínio
+    participant REP as Repositório
+    participant DB[(H2)]
+    participant AUD as Auditoria
+
+    note over Resp, DB: Retirada
+    Resp->>UI: selecionar reserva aprovada e material
+    UI->>WEB: POST /movements (retirada)
+    WEB->>SVC: registrar retirada
+    SVC->>DOM: verificar reserva EM_USO e perfil RESPONSAVEL
+    DOM-->>SVC: autorizado e estado válido
+    SVC->>REP: INSERT MaterialMovement (retirada e condição)
+    REP->>DB: INSERT
+    DB-->>REP: ok
+    SVC->>AUD: evento de retirada (mesma transação)
+    AUD->>DB: INSERT AuditEvent
+    DB-->>AUD: ok
+    DB-->>REP: COMMIT
+    SVC-->>WEB: 201 Created
+    WEB-->>UI: retirada registrada
+    UI-->>Resp: confirmação
+
+    note over Resp, DB: Devolução
+    Resp->>UI: informar devolução e condição do item
+    UI->>WEB: POST /movements/{id}/devolucao
+    WEB->>SVC: registrar devolução
+    SVC->>DOM: verificar retirada pendente
+    DOM-->>SVC: retirada existe
+    SVC->>DOM: validar transição EM_USO -> CONCLUÍDA
+    DOM-->>SVC: transição válida
+    SVC->>REP: atualizar Movement (devolução e condição)
+    SVC->>REP: atualizar Reservation -> CONCLUÍDA
+    SVC->>AUD: eventos de devolução e transição (mesma transação)
+    REP->>DB: UPDATE + INSERT AuditEvent
+    DB-->>REP: ok
+    SVC-->>WEB: 200 OK
+    WEB-->>UI: devolução registrada
+    UI-->>Resp: confirmação
+```
 
 ## 5\. Modelo de domínio e persistência
 
@@ -374,8 +675,24 @@ O PRD define os seguintes estados:
 
 O fluxo nominal é:
 
-```
-SOLICITADA -> APROVADA -> EM_USO -> CONCLUÍDA
+```mermaid
+stateDiagram-v2
+    [*] --> SOLICITADA : solicitação de reserva
+
+    SOLICITADA --> APROVADA : aprovação do Responsável
+    SOLICITADA --> REJEITADA : rejeição do Responsável
+    SOLICITADA --> CANCELADA : cancelamento pelo Solicitante
+
+    APROVADA --> EM_USO : início da utilização
+    APROVADA --> CANCELADA : cancelamento antes do início
+    APROVADA --> "NÃO COMPARECEU" : ausência registrada
+
+    EM_USO --> CONCLUÍDA : finalização da utilização
+
+    REJEITADA --> [*]
+    CANCELADA --> [*]
+    "NÃO COMPARECEU" --> [*]
+    CONCLUÍDA --> [*]
 ```
 
 ### 8.2. Matriz inicial de transições
