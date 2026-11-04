@@ -567,6 +567,25 @@ Content-Type: application/json
 
 ## 🧪 Testes
 
+### Suíte atual (fase red do TDD)
+
+A suíte atual está em `src/test/java/com/organizacao/recursos/testes/` e cobre os 146 casos definidos em [`docs/testes/plano-tdd.md`](docs/testes/plano-tdd.md) (RN-01 a RN-09, RF-01, RF-02, RF-03, RF-10, RF-12, RF-15 e RF-16). Nessa fase, os testes são escritos antes da implementação, e as classes de serviço (`src/main/java/com/organizacao/recursos/servico/`) são apenas assinaturas: cada método lança `UnsupportedOperationException("Não implementado: ...")`. Por isso, **`mvn test` falha de propósito** até que as regras sejam implementadas.
+
+Pré-requisitos para esta suíte: JDK 17 ou superior e Maven 3.8.1 ou superior. O `pom.xml` declara apenas o `maven-surefire-plugin` 3.2.5 (necessário para executar testes JUnit 5; o Surefire padrão de Maven antigos, como o 2.12.4, executa zero testes) e fixa `source`/`target` 17 para compiladores antigos.
+
+```bash
+# Rodar a suíte inteira (esperado: falhas por "Não implementado")
+mvn test
+
+# Rodar uma classe de teste (uma por regra ou requisito)
+mvn -Dtest=RN02ExclusividadeAlocacaoTest test
+
+# Rodar todas as classes de uma regra
+mvn -Dtest='RN03*' test
+```
+
+Os casos que dependem de esclarecimento do plano (marcados com ⚠️ ou "?") estão anotados com `@Disabled` e o identificador da ambiguidade (AMB-xx). Eles não aparecem como falhas até que a ambiguidade seja resolvida e a anotação removida.
+
 ### Executar Todos os Testes
 
 ```bash
