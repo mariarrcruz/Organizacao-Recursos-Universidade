@@ -41,3 +41,12 @@ jobs:
             target/failsafe-reports/
           retention-days: 3
           if-no-files-found: warn
+
+      - name: Upload JaCoCo coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-coverage-report
+          path: target/site/jacoco/
+          retention-days: 7
+          if-no-files-found: warn

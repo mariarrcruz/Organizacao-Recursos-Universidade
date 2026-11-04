@@ -532,7 +532,7 @@
 
 ## 7. Matriz de Implementação (fase green)
 
-**Build de verificação:** `./mvnw -B verify` — 146 testes executados, 0 falhas, 0 erros, 0 ignorados.
+**Build de verificação:** `./mvnw -B verify` — 243 testes executados, 0 falhas, 0 erros, 0 ignorados. Cobertura (JaCoCo): 97,7% de linhas e 94,4% de branches; gate na fase verify: linhas ≥ 80%, branches ≥ 70%.
 
 Legenda: ✅ verde · ⏸ `@Disabled` (bloqueado por contradição ou dado faltante, ver § 7.2) · ⚠️ verde com decisão provisória (ver § 7.2)
 
@@ -571,8 +571,19 @@ Legenda: ✅ verde · ⏸ `@Disabled` (bloqueado por contradição ou dado falta
 | RF-15 | Administrador A.12 bypass de aprovação (403) | rf15_a12 | ✅ |
 | RF-16 Propriedade | RF-16.1, 16.2, 16.4 a 16.7 | `RF16PropriedadeReservaTest` | ✅ |
 | RF-16 | RF-16.3 excluir SOLICITADA própria | rf16_3 | ✅ |
+| Cobertura (risco) RN-05/RN-06 | Transições fora da máquina, trinca de cancelamento antes do início (-1, 0, +1 min), justificativa obrigatória, permissões de transição, 404 | `CoberturaRiscoReservasTest` | ✅ |
+| Cobertura (risco) RN-04 | Manutenção com fim ≤ início (trinca -1, 0, +1 min) e sem período | `CoberturaRiscoReservasTest` | ✅ |
+| Cobertura (risco) RN-09 | Pendentes só SOLICITADA; auditoria de reserva alheia (403); transição altera só o alvo | `CoberturaRiscoReservasTest` | ✅ |
+| Cobertura (risco) RF-01 | Expiração de access token e refresh (trinca -1, 0, +1 s), rotação com reuso rejeitado, claims `sub`/`roles`/perfil inválidos, assinatura não canônica e fora do alfabeto | `CoberturaRiscoAutenticacaoTest` | ✅ |
+| Cobertura (risco) RF-02/RF-03 | Cadastro nulo/duplicado/nome inválido, capacidade não numérica, disponibilidade sem início ou fim, competência textual, exclusão só sem reserva ativa | `CoberturaRiscoRecursosTest` | ✅ |
+| Cobertura (risco) RF-15 | Usuário sem id, edição sem alvo, chave de parâmetro vazia | `CoberturaRiscoRecursosTest` | ✅ |
+| Cobertura (risco) RF-10 | Retirada exige APROVADA/EM_USO, material já retirado, devolução sem retirada aberta ou em outra reserva, fronteira de dia em `historicoPeriodo` (-1, 0, +1) | `servico/CoberturaRiscoMovimentacoesTest` | ✅ |
+| Cobertura (risco) RF-15 | Usuário com perfis nulos negado por perfil (403) | `servico/CoberturaRiscoAutorizacaoTest` | ✅ |
+| Cobertura (risco) RF-12 | Só APROVADA, EM_USO e CONCLUIDA contam como utilização; fronteira de dia (-1, 0, +1) | `CoberturaRiscoRelatoriosTest` | ✅ |
 
-**Resumo:** 146 executados, 146 verdes, 0 `@Disabled`. Duas expectativas de teste foram alteradas por decisão do product owner (RN-08.1 e RF-12.7, ver § 7.2). A injeção de relógio fixo em `RN06EstadosAlternativosTest` não altera expectativa.
+**Lacunas não cobertas (cosméticas, sem teste):** blocos `catch` de `GeneralSecurityException` (inalcançáveis com RSA/SHA-256 padrão do JCA); validação de issuer/audiência e de payload Base64 em `ServicoAutenticacao` (exigem token assinado com a chave privada, portanto inalcançáveis por API); métodos auxiliares de carga (`registrarExistente`, `registrarRecursoExistente`, `registrarManutencaoExistente`); `ehDono` com ator nulo (já barrado por `exigirAutenticado`); `default` de `exigirAutorizacaoTransicao` (inalcançável após `transicaoPermitida`); `substituir` sem reserva correspondente (inalcançável após `buscarObrigatoria`); `duracaoUso` com devolução sem retirada (inalcançável via API).
+
+**Resumo:** 243 executados, 243 verdes, 0 `@Disabled`. Os 97 testes novos de cobertura de risco foram adicionados sem alterar expectativas de regra de negócio. Duas expectativas de teste foram alteradas por decisão do product owner (RN-08.1 e RF-12.7, ver § 7.2). A injeção de relógio fixo em `RN06EstadosAlternativosTest` não altera expectativa.
 
 ### 7.2. Decisões registradas (sem pendências)
 
@@ -582,3 +593,10 @@ Legenda: ✅ verde · ⏸ `@Disabled` (bloqueado por contradição ou dado falta
 4. **AMB-03 — Responsável pode criar reserva própria.** Confirmado. Ativa RF-15.R.7.
 5. **AMB-06 — Solicitante não acessa relatório gerencial (403).** Confirmado. Ativa RF-12.6 e RF-15.S.8.
 6. **RN-06.3 — relógio injetado.** `ServicoReservas(Clock)`; `RN06EstadosAlternativosTest` usa relógio fixo em 2026-11-03 12:00. Sem alteração de expectativa.
+
+### 7.3. Cobertura JaCoCo e gate
+
+- **Relatório:** `target/site/jacoco/` (HTML e XML), gerado na fase verify e publicado como artifact `jacoco-coverage-report` no `.github/workflows/ci.yml`.
+- **Gate:** linhas ≥ 80% e branches ≥ 70% no bundle, na fase verify. As metas são propriedades (`jacoco.line.minimum`, `jacoco.branch.minimum`) para permitir validação com `-D`.
+- **Validação da falha:** com `./mvnw -B verify -Djacoco.line.minimum=0.99`, o build falha com "lines covered ratio is 0.97, but expected minimum is 0.99". Com as metas restauradas, o build volta a passar.
+- **Alteração de produção:** `ServicoAutenticacao` ganhou o construtor `ServicoAutenticacao(Clock)` para expiração testável. O construtor padrão usa `Clock.systemUTC()`, equivalente a `Instant.now()`.

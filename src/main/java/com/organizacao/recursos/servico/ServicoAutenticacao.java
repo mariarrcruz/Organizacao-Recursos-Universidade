@@ -12,6 +12,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Signature;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Collection;
@@ -50,8 +51,15 @@ public class ServicoAutenticacao {
     private final PublicKey chavePublica;
     private final Map<String, Registro> refreshTokens = new HashMap<>();
     private final SecureRandom random = new SecureRandom();
+    private final Clock relogio;
 
     public ServicoAutenticacao() {
+        this(Clock.systemUTC());
+    }
+
+    /** Relógio injetável para testes de expiração (RF-01). */
+    public ServicoAutenticacao(Clock relogio) {
+        this.relogio = relogio;
         try {
             KeyPairGenerator gerador = KeyPairGenerator.getInstance("RSA");
             gerador.initialize(2048);
@@ -74,7 +82,7 @@ public class ServicoAutenticacao {
         }
         claims.put("iss", ISSUER);
         claims.put("aud", AUDIENCE);
-        claims.put("iat", Instant.now().getEpochSecond());
+        claims.put("iat", relogio.instant().getEpochSecond());
         claims.put("exp", expiracao.getEpochSecond());
         claims.put("jti", UUID.randomUUID().toString());
         String payload = Base64.getUrlEncoder().withoutPadding()
@@ -103,7 +111,7 @@ public class ServicoAutenticacao {
         }
 
         Long exp = extrairLong(EXP, json);
-        if (exp == null || Instant.now().getEpochSecond() >= exp) {
+        if (exp == null || relogio.instant().getEpochSecond() >= exp) {
             throw new ErroAplicacao(401, "Token expirado ou sem expiração");
         }
         if (!ISSUER.equals(extrairString(ISS, json)) || !AUDIENCE.equals(extrairString(AUD, json))) {
@@ -145,11 +153,11 @@ public class ServicoAutenticacao {
             throw new ErroAplicacao(401, "Refresh token ausente");
         }
         Registro reg = refreshTokens.get(hash(refreshToken));
-        if (reg == null || reg.usado() || !Instant.now().isBefore(reg.expiracao())) {
+        if (reg == null || reg.usado() || !relogio.instant().isBefore(reg.expiracao())) {
             throw new ErroAplicacao(401, "Refresh token inválido, usado ou expirado");
         }
         refreshTokens.put(hash(refreshToken), new Registro(reg.sub(), reg.expiracao(), true));
-        return gerarRefreshToken(reg.sub(), Instant.now().plusSeconds(REFRESH_SEGUNDOS));
+        return gerarRefreshToken(reg.sub(), relogio.instant().plusSeconds(REFRESH_SEGUNDOS));
     }
 
     // ---------------------------------------------------------------- internos
