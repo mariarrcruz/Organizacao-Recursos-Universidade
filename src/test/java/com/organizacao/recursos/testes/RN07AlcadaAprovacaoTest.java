@@ -42,7 +42,6 @@ class RN07AlcadaAprovacaoTest {
     }
 
     @Test
-    @Disabled("Esclarecer: Administrador pode aprovar recurso restrito? Escopo (AMB-02). Plano RN-07.3 ⚠️.")
     @DisplayName("RN-07.3 — Restrito=true + Administrador: esclarecer escopo")
     void rn07_3_administradorAprovaRecursoRestrito() {
         // Arrange
@@ -53,7 +52,6 @@ class RN07AlcadaAprovacaoTest {
     }
 
     @Test
-    @Disabled("Valor-limite marcado com '?' no plano RN-07.4; confirmar se Responsável aprova recurso não restrito.")
     @DisplayName("RN-07.4 — Restrito=false + Responsável: permitido? (confirmar)")
     void rn07_4_responsavelAprovaRecursoLivre() {
         // Arrange

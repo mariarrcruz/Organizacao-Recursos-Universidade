@@ -108,7 +108,6 @@ class RF01AutenticacaoJwtTest {
     }
 
     @Test
-    @Disabled("Esclarecer: múltiplos perfis aplicam o mais permissivo? (plano RF-01.10 'aplica mais permissivo?').")
     @DisplayName("RF-01.10 — Múltiplos perfis (SOLICITANTE, RESPONSAVEL): aceito, mais permissivo?")
     void rf01_10_multiplosPerfisEhAceito() {
         // Arrange

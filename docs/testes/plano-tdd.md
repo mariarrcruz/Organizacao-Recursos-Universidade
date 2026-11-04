@@ -527,3 +527,58 @@
 - **Artefatos consultados:** 6 (requisitos, personas, arquitetura, PRD)
 - **Tempo de preparação:** ~2 horas
 - **Próxima revisão:** Pós-esclarecimento de ambiguidades
+
+---
+
+## 7. Matriz de Implementação (fase green)
+
+**Build de verificação:** `./mvnw -B verify` — 146 testes executados, 0 falhas, 0 erros, 0 ignorados.
+
+Legenda: ✅ verde · ⏸ `@Disabled` (bloqueado por contradição ou dado faltante, ver § 7.2) · ⚠️ verde com decisão provisória (ver § 7.2)
+
+### 7.1. Regra → Caso → Teste → Status
+
+| Regra | Caso | Teste (método) | Status |
+|-------|------|----------------|--------|
+| RN-01 Ordem temporal | RN-01.1 a RN-01.3, 01.5, 01.6 | `RN01OrdemTemporalTest` (rn01_1, rn01_2, rn01_3, rn01_5, rn01_6) | ✅ |
+| RN-01 | RN-01.4 duração mínima (1 min) | rn01_4 | ✅ |
+| RN-02 Exclusividade | RN-02.1 a RN-02.9 | `RN02ExclusividadeAlocacaoTest` (rn02_1 … rn02_9) | ✅ |
+| RN-03 Concorrência | RN-03.1 a RN-03.5 | `RN03AtomicidadeConcorrenciaTest` (rn03_1 … rn03_5) | ✅ |
+| RN-04 Manutenção | RN-04.1 a RN-04.7 | `RN04ManutencaoTest` (rn04_1 … rn04_7) | ✅ |
+| RN-05 Fluxo principal | RN-05.1 a RN-05.6 | `RN05FluxoPrincipalTest` (rn05_1 … rn05_6) | ✅ |
+| RN-05 | RN-05.7 idempotência (CONCLUÍDA → CONCLUÍDA é erro 409) | rn05_7 | ✅ |
+| RN-06 Estados alternativos | RN-06.1 a RN-06.8 | `RN06EstadosAlternativosTest` (rn06_1 … rn06_8) | ✅ |
+| RN-07 Alçada de aprovação | RN-07.1, 07.2, 07.5, 07.6 | `RN07AlcadaAprovacaoTest` | ✅ |
+| RN-07 | RN-07.3 admin aprova restrito (403); RN-07.4 Responsável aprova não restrito | rn07_3, rn07_4 | ✅ |
+| RN-08 Imutabilidade em execução | RN-08.3, RN-08.6 | `RN08ImutabilidadeExecucaoTest` (rn08_3, rn08_6) | ✅ |
+| RN-08 | RN-08.2, 08.4, 08.5 (DELETE em APROVADA, CONCLUÍDA, REJEITADA é 409) | rn08_2, rn08_4, rn08_5 | ✅ |
+| RN-08 | RN-08.1 DELETE em SOLICITADA pelo dono é permitido (expectativa alterada, § 7.2) | rn08_1 | ✅ |
+| RN-09 Rastreabilidade | RN-09.1 a RN-09.10 | `RN09RastreabilidadeTest` (rn09_1 … rn09_10) | ✅ |
+| RF-01 Autenticação JWT | RF-01.1 a RF-01.9, 01.11, 01.12 | `RF01AutenticacaoJwtTest` | ✅ |
+| RF-01 | RF-01.10 múltiplos perfis (token com SOLICITANTE e RESPONSAVEL é aceito) | rf01_10 | ✅ |
+| RF-02 Gestão de recursos | RF-02.1 a RF-02.4, 02.6 a 02.10 | `RF02GestaoRecursosTest` | ✅ |
+| RF-02 | RF-02.5 excluir sala com reserva ativa é 409 | rf02_5 | ✅ |
+| RF-03 Pesquisa | RF-03.1 a RF-03.8 | `RF03PesquisaRecursosTest` | ✅ |
+| RF-10 Movimentações | RF-10.1 a RF-10.8 | `RF10MovimentacoesMaterialTest` | ✅ |
+| RF-12 Relatórios | RF-12.1 a RF-12.5, 12.8 | `RF12RelatoriosTest` | ✅ |
+| RF-12 | RF-12.6 acesso do Solicitante a relatório gerencial (403) | rf12_6 | ✅ |
+| RF-12 | RF-12.7 id inexistente (sala_id = `PROF-1`) retorna 404 (expectativa alterada, § 7.2) | rf12_7 | ✅ |
+| RF-15 Acesso por perfil | Solicitante S.1 a S.7 | `RF15ControleAcessoPerfilTest$Solicitante` | ✅ |
+| RF-15 | Solicitante S.8 relatórios (403) | rf15_s8 | ✅ |
+| RF-15 | Responsável R.1 a R.6, R.8, R.9 | `RF15ControleAcessoPerfilTest$Responsavel` | ✅ |
+| RF-15 | Responsável R.7 criar reserva própria | rf15_r7 | ✅ |
+| RF-15 | Administrador A.1 a A.11 | `RF15ControleAcessoPerfilTest$Administrador` | ✅ |
+| RF-15 | Administrador A.12 bypass de aprovação (403) | rf15_a12 | ✅ |
+| RF-16 Propriedade | RF-16.1, 16.2, 16.4 a 16.7 | `RF16PropriedadeReservaTest` | ✅ |
+| RF-16 | RF-16.3 excluir SOLICITADA própria | rf16_3 | ✅ |
+
+**Resumo:** 146 executados, 146 verdes, 0 `@Disabled`. Duas expectativas de teste foram alteradas por decisão do product owner (RN-08.1 e RF-12.7, ver § 7.2). A injeção de relógio fixo em `RN06EstadosAlternativosTest` não altera expectativa.
+
+### 7.2. Decisões registradas (sem pendências)
+
+1. **AMB-01 — exclusão de reserva `SOLICITADA`.** Decisão: vale RF-16.3. O dono pode excluir a própria reserva em `SOLICITADA`. **Expectativa alterada:** RN-08.1 passou de `assertRejeitado` para `assertDoesNotThrow`, com `@Disabled` removido. Demais estados seguem bloqueados (APROVADA, CONCLUÍDA, REJEITADA, EM_USO).
+2. **RF-12.7 — id inexistente em relatório de sala.** Decisão: 404. **Expectativa alterada:** `assertErro(400)` passou a `assertErro(404)`, com `@Disabled` removido. Limitação registrada: sem o registro de recursos no relatório, "existe" é inferido das reservas. Uma sala sem nenhuma reserva também retorna 404 até o relatório receber o registro de recursos.
+3. **AMB-04 — duração mínima de 1 minuto.** Confirmado. Ativa RN-01.4.
+4. **AMB-03 — Responsável pode criar reserva própria.** Confirmado. Ativa RF-15.R.7.
+5. **AMB-06 — Solicitante não acessa relatório gerencial (403).** Confirmado. Ativa RF-12.6 e RF-15.S.8.
+6. **RN-06.3 — relógio injetado.** `ServicoReservas(Clock)`; `RN06EstadosAlternativosTest` usa relógio fixo em 2026-11-03 12:00. Sem alteração de expectativa.

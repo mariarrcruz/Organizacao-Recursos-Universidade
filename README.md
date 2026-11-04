@@ -69,9 +69,9 @@ Antes de instalar, certifique-se de que você possui:
   - Verifique: `java -version`
   - Download: [oracle.com/java](https://www.oracle.com/java/technologies/downloads/)
 
-- **Maven 3.8.1 ou superior** (para build e testes)
-  - Verifique: `mvn -v`
-  - Download: [maven.apache.org](https://maven.apache.org/download.cgi)
+- **Maven: não é necessário instalar.** O projeto traz o Maven Wrapper (`./mvnw` em Linux/macOS, `mvnw.cmd` no Windows), que baixa automaticamente o Maven 3.9.9 na primeira execução. Se preferir o Maven instalado, use `mvn` (3.8.1 ou superior).
+  - Verifique: `./mvnw -v`
+  - Download (opcional): [maven.apache.org](https://maven.apache.org/download.cgi)
 
 - **Git** (para clonar o repositório)
   - Download: [git-scm.com](https://git-scm.com/)
@@ -120,7 +120,7 @@ SPRING_PROFILES_ACTIVE=dev
 ### 3. Compilar o Projeto
 
 ```bash
-mvn clean compile
+./mvnw -B clean compile      # Windows: mvnw.cmd -B clean compile
 ```
 
 Se tudo estiver correto, você verá:
@@ -128,29 +128,28 @@ Se tudo estiver correto, você verá:
 [INFO] BUILD SUCCESS
 ```
 
-### 4. Executar Testes (Opcional)
+### 4. Executar o Build Completo com Testes
 
 ```bash
-mvn test
+./mvnw -B verify             # Windows: mvnw.cmd -B verify
 ```
 
-Isso executará todos os testes unitários e de integração.
+Esperado atualmente: `Tests run: 146, Failures: 0, Errors: 0, Skipped: 0` e `BUILD SUCCESS`.
 
-### 5. Gerar Relatório de Cobertura
+### 5. Cobertura de Código
 
-```bash
-mvn clean test jacoco:report
-# Relatório gerado em: target/site/jacoco/index.html
-```
+O JaCoCo ainda não está configurado no `pom.xml`, então não há relatório de cobertura por enquanto.
 
 ---
 
 ## 🚀 Como Executar
 
-### Opção 1: Maven (Recomendado)
+> **Estado atual:** a implementação existente é a camada de serviços (regras de negócio) em Java puro, sem Spring e sem servidor HTTP. Não há ponto de entrada web ainda, então os comandos `spring-boot:run` e `/health` descritos abaixo são planejados, não funcionais hoje. Para verificar o sistema, use os testes (`./mvnw -B verify`).
+
+### Opção 1: Maven (planejado)
 
 ```bash
-mvn spring-boot:run
+./mvnw spring-boot:run       # ainda não disponível: requer Spring Boot
 ```
 
 A aplicação iniciará em: **http://localhost:8080**
@@ -567,55 +566,28 @@ Content-Type: application/json
 
 ## 🧪 Testes
 
-### Suíte atual (fase red do TDD)
+### Suíte atual (fase green do TDD)
 
-A suíte atual está em `src/test/java/com/organizacao/recursos/testes/` e cobre os 146 casos definidos em [`docs/testes/plano-tdd.md`](docs/testes/plano-tdd.md) (RN-01 a RN-09, RF-01, RF-02, RF-03, RF-10, RF-12, RF-15 e RF-16). Nessa fase, os testes são escritos antes da implementação, e as classes de serviço (`src/main/java/com/organizacao/recursos/servico/`) são apenas assinaturas: cada método lança `UnsupportedOperationException("Não implementado: ...")`. Por isso, **`mvn test` falha de propósito** até que as regras sejam implementadas.
+A suíte está em `src/test/java/com/organizacao/recursos/testes/` e cobre os 146 casos definidos em [`docs/testes/plano-tdd.md`](docs/testes/plano-tdd.md) (RN-01 a RN-09, RF-01, RF-02, RF-03, RF-10, RF-12, RF-15 e RF-16). Todos passam: a implementação das regras está em `src/main/java/com/organizacao/recursos/servico/` e não há testes desabilitados. A matriz regra → caso → teste → status está na seção 7 do plano.
 
-Pré-requisitos para esta suíte: JDK 17 ou superior e Maven 3.8.1 ou superior. O `pom.xml` declara apenas o `maven-surefire-plugin` 3.2.5 (necessário para executar testes JUnit 5; o Surefire padrão de Maven antigos, como o 2.12.4, executa zero testes) e fixa `source`/`target` 17 para compiladores antigos.
+Pré-requisitos: JDK 17 ou superior. O `pom.xml` declara o `maven-surefire-plugin` 3.2.5 (necessário para executar testes JUnit 5) e fixa `source`/`target` 17.
 
 ```bash
-# Rodar a suíte inteira (esperado: falhas por "Não implementado")
-mvn test
+# Build completo com testes (Linux/macOS; no Windows use mvnw.cmd)
+./mvnw -B verify
 
 # Rodar uma classe de teste (uma por regra ou requisito)
-mvn -Dtest=RN02ExclusividadeAlocacaoTest test
+./mvnw -B -Dtest=RN02ExclusividadeAlocacaoTest test
 
 # Rodar todas as classes de uma regra
-mvn -Dtest='RN03*' test
+./mvnw -B -Dtest='RN03*' test
 ```
 
-Os casos que dependem de esclarecimento do plano (marcados com ⚠️ ou "?") estão anotados com `@Disabled` e o identificador da ambiguidade (AMB-xx). Eles não aparecem como falhas até que a ambiguidade seja resolvida e a anotação removida.
+Decisões de regra que ainda dependem de confirmação do product owner estão listadas na seção 7.2 do plano. Hoje não há casos ignorados.
 
-### Executar Todos os Testes
+### Testes por categoria (planejado)
 
-```bash
-mvn test
-```
-
-### Executar Testes por Categoria
-
-```bash
-# Testes unitários
-mvn test -Dgroups=unit
-
-# Testes de integração
-mvn test -Dgroups=integration
-
-# Testes de segurança
-mvn test -Dgroups=security
-
-# Testes end-to-end
-mvn test -Dgroups=e2e
-```
-
-### Gerar Relatório de Cobertura
-
-```bash
-mvn clean test jacoco:report
-
-# Abrir relatório no navegador
-# Localize: target/site/jacoco/index.html
-```
+As categorias `unit`, `integration`, `security` e `e2e` descritas na arquitetura ainda não existem no projeto; a suíte atual é uma única árvore de testes por regra. Quando existirem, o filtro será feito com tags do JUnit.
 
 ### Estrutura de Testes
 

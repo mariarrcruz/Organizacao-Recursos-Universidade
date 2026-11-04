@@ -45,7 +45,6 @@ class RN01OrdemTemporalTest {
     }
 
     @Test
-    @Disabled("Esclarecer: duração mínima da reserva (AMB-04). Plano RN-01.4 marca ⚠️.")
     @DisplayName("RN-01.4 — Duração < 1 minuto: validar se permitido")
     void rn01_4_duracaoMenorQueUmMinuto() {
         // Arrange

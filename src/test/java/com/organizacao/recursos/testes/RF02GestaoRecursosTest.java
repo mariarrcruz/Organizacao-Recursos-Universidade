@@ -76,7 +76,6 @@ class RF02GestaoRecursosTest {
     }
 
     @Test
-    @Disabled("Esclarecer: exclusão de sala com reserva EM_USO (referência ativa, plano RF-02.5 ⚠️).")
     @DisplayName("RF-02.5 — DELETE de sala com reserva EM_USO: esclarecer")
     void rf02_5_excluirSalaComReservaEmUso() {
         // Arrange

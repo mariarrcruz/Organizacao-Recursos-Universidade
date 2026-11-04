@@ -92,7 +92,6 @@ class RF12RelatoriosTest {
     }
 
     @Test
-    @Disabled("Esclarecer: Solicitante pode consultar relatórios de outros usuários? (AMB-06 / RF-12.6 ⚠️).")
     @DisplayName("RF-12.6 — Relatório gerencial por Solicitante: esclarecer acesso")
     void rf12_6_solicitanteConsultaRelatorioGerencial() {
         // Arrange
@@ -102,12 +101,11 @@ class RF12RelatoriosTest {
     }
 
     @Test
-    @Disabled("Esclarecer: filtro incompatível retorna erro ou resultado vazio? (plano RF-12.7 ⚠️).")
-    @DisplayName("RF-12.7 — Filtro incompatível (sala_id em relatório de professor): erro ou vazio?")
+    @DisplayName("RF-12.7 — Id inexistente (sala_id = PROF-1) em relatório de sala: 404 (decisão da pendência 2)")
     void rf12_7_filtroIncompativelComRelatorio() {
         // Arrange
         // Act & Assert
-        assertErro(400, () -> relatorios.cargaHorariaSala(admin, "PROF-1", DIA, DIA));
+        assertErro(404, () -> relatorios.cargaHorariaSala(admin, "PROF-1", DIA, DIA));
     }
 
     @Test

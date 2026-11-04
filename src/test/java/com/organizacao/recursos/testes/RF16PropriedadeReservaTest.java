@@ -42,7 +42,6 @@ class RF16PropriedadeReservaTest {
     }
 
     @Test
-    @Disabled("Esclarecer: DELETE de própria reserva depende do estado (AMB-01, plano RF-16.3 ⚠️).")
     @DisplayName("RF-16.3 — Alice exclui reserva criada por Alice (SOLICITADA): depende de estado")
     void rf16_3_excluirPropriaReservaDependeDeEstado() {
         // Arrange

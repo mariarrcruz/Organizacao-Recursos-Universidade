@@ -11,7 +11,10 @@ import org.junit.jupiter.api.Test;
 /** Regra RN-06 — Estados alternativos REJEITADA, CANCELADA e NÃO COMPARECEU (PRD § 4.2; RFC RF-05). */
 class RN06EstadosAlternativosTest {
 
-    private final ServicoReservas servico = new ServicoReservas();
+    /** Relógio fixo antes de DIA (2026-11-05), para que "antes do início" seja determinístico. */
+    private final ServicoReservas servico = new ServicoReservas(
+            java.time.Clock.fixed(java.time.LocalDateTime.of(2026, 11, 3, 12, 0)
+                    .atZone(java.time.ZoneId.systemDefault()).toInstant(), java.time.ZoneId.systemDefault()));
     private final Usuario alice = solicitante("alice");
     private final Usuario resp = responsavel("resp");
     private final Recurso sala = sala("S1", false);

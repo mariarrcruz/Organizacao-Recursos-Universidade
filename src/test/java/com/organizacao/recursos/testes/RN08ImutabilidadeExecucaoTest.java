@@ -1,6 +1,7 @@
 package com.organizacao.recursos.testes;
 
 import static com.organizacao.recursos.testes.Fixtures.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import com.organizacao.recursos.dominio.*;
 import com.organizacao.recursos.servico.ServicoReservas;
@@ -16,18 +17,16 @@ class RN08ImutabilidadeExecucaoTest {
     private final Recurso sala = sala("S1", false);
 
     @Test
-    @Disabled("Esclarecer: DELETE em SOLICITADA é permitido? (AMB-01). Plano RN-08.1 ⚠️.")
-    @DisplayName("RN-08.1 — SOLICITADA + DELETE: rejeitado (deletar após solicitação proibido?)")
+    @DisplayName("RN-08.1 — SOLICITADA + DELETE pelo dono: permitido (decisão AMB-01, alinhada a RF-16.3)")
     void rn08_1_deleteEmSolicitada() {
         // Arrange
         Reserva solicitada = reserva("R1", alice, sala, "10:00", "11:00", EstadoReserva.SOLICITADA);
         servico.registrarExistente(solicitada);
         // Act & Assert
-        assertRejeitado(() -> servico.excluir(alice, solicitada));
+        assertDoesNotThrow(() -> servico.excluir(alice, solicitada));
     }
 
     @Test
-    @Disabled("Esclarecer: DELETE em APROVADA é permitido? (AMB-01). Plano RN-08.2 ⚠️.")
     @DisplayName("RN-08.2 — APROVADA + DELETE: rejeitado (deletar após aprovação proibido?)")
     void rn08_2_deleteEmAprovada() {
         // Arrange
@@ -48,7 +47,6 @@ class RN08ImutabilidadeExecucaoTest {
     }
 
     @Test
-    @Disabled("Esclarecer: DELETE em CONCLUÍDA é permitido? Plano RN-08.4 ⚠️ (AMB-05).")
     @DisplayName("RN-08.4 — CONCLUÍDA + DELETE: esclarecer")
     void rn08_4_deleteEmConcluida() {
         // Arrange
@@ -59,7 +57,6 @@ class RN08ImutabilidadeExecucaoTest {
     }
 
     @Test
-    @Disabled("Esclarecer: DELETE em REJEITADA é permitido? Plano RN-08.5 ⚠️ (AMB-01).")
     @DisplayName("RN-08.5 — REJEITADA + DELETE: esclarecer")
     void rn08_5_deleteEmRejeitada() {
         // Arrange

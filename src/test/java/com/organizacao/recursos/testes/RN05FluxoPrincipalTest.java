@@ -84,7 +84,6 @@ class RN05FluxoPrincipalTest {
     }
 
     @Test
-    @Disabled("Esclarecer: idempotência de CONCLUÍDA → CONCLUÍDA, ignorar ou erro (plano RN-05.7 ⚠️).")
     @DisplayName("RN-05.7 — CONCLUÍDA → CONCLUÍDA (idempotência): ignorar ou erro?")
     void rn05_7_idempotenciaConcluida() {
         // Arrange

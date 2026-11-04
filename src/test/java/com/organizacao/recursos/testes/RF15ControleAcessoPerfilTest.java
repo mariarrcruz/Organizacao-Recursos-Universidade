@@ -112,7 +112,6 @@ class RF15ControleAcessoPerfilTest {
         }
 
         @Test
-        @Disabled("Esclarecer: Solicitante vê relatórios gerenciais/dashboard? (AMB-06, plano RF-15.S.8 ⚠️).")
         @DisplayName("RF-15.S.8 — Ver relatórios gerenciais (dashboard): esclarecer")
         void rf15_s8_verRelatoriosGerenciais() {
             // Arrange
@@ -199,7 +198,6 @@ class RF15ControleAcessoPerfilTest {
         }
 
         @Test
-        @Disabled("Esclarecer: escopo da criação de reserva própria pelo Responsável (AMB-03, plano RF-15.R.7 ⚠️).")
         @DisplayName("RF-15.R.7 — Criar reserva própria: esclarecer escopo")
         void rf15_r7_criarReservaPropria() {
             // Arrange
@@ -327,7 +325,6 @@ class RF15ControleAcessoPerfilTest {
         }
 
         @Test
-        @Disabled("Esclarecer: Administrador pode contornar aprovação de recurso restrito? (AMB-02, plano RF-15.A.12 ⚠️).")
         @DisplayName("RF-15.A.12 — Bypass de aprovação em recurso restrito: negado ou escopo?")
         void rf15_a12_bypassDeAprovacao() {
             // Arrange
