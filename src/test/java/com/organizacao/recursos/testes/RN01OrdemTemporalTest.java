@@ -25,7 +25,7 @@ class RN01OrdemTemporalTest {
         Reserva reserva = servico.solicitar(alice, sala, t("10:00"), t("11:00"));
         // Assert
         assertNotNull(reserva);
-        assertEquals(EstadoReserva.SOLICITADA, reserva.getEstado());
+        assertEquals(EstadoReserva.CONFIRMADA, reserva.getEstado());
     }
 
     @Test
