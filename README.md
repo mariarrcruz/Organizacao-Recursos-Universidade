@@ -874,3 +874,15 @@ Para dúvidas ou sugestões:
 
 **Última atualização:** Nov 2026  
 **Versão:** 1.0.0 (em desenvolvimento)
+
+## Integração contínua (CI)
+
+Workflow: `.github/workflows/ci.yml` (executa `./mvnw -B verify` com Java 21 Temurin em `pull_request` e em `push` na `main`).
+
+Runs de validação na branch `ci/github-actions-maven` (PR #1):
+
+| Run ID | Commit | Resultado | Descrição |
+|---|---|---|---|
+| 41749229638 | `8be661d` | ✅ success | Workflow inicial, build verde |
+| 41749369127 | `8d3e9a9` | ❌ failure | Asserção quebrada de propósito (`RN01OrdemTemporalTest`) |
+| 41749482570 | `4d36099` | ✅ success | Reversão da quebra, build verde novamente |
