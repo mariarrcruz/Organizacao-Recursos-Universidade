@@ -17,6 +17,10 @@
     <!-- Metas do gate JaCoCo (fase verify). Sobrescrevíveis por -D para validar a falha. -->
     <jacoco.line.minimum>0.80</jacoco.line.minimum>
     <jacoco.branch.minimum>0.70</jacoco.branch.minimum>
+    <!-- SonarCloud: lê o XML do JaCoCo gerado na fase verify. Organização e projeto vêm de vars do GitHub. -->
+    <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+    <sonar.sources>src/main/java</sonar.sources>
+    <sonar.tests>src/test/java</sonar.tests>
   </properties>
 
   <dependencies>
