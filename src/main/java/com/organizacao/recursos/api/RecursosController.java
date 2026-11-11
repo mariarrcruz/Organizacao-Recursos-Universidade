@@ -38,12 +38,29 @@ public class RecursosController {
         if (!ator.perfis().contains(Perfil.ADMINISTRADOR)) {
             throw new ErroAplicacao(403, "Perfil ADMINISTRADOR exigido");
         }
-        armazenamento.gravarRecurso(new Recurso(corpo.id(), TipoRecurso.valueOf(corpo.tipo()), corpo.nome(),
-                corpo.localizacao(), corpo.capacidade(), corpo.restrito(), StatusRecurso.valueOf(corpo.status()),
+        if (corpo.id() == null || corpo.id().isBlank()) {
+            throw new ErroAplicacao(400, "Informe o id do recurso (campo id)");
+        }
+        TipoRecurso tipo = enumDe(TipoRecurso.class, corpo.tipo(), "tipo", "SALA, PROFESSOR, MATERIAL ou EQUIPAMENTO");
+        StatusRecurso status = enumDe(StatusRecurso.class, corpo.status(), "status", "DISPONIVEL, INDISPONIVEL ou MANUTENCAO");
+        armazenamento.gravarRecurso(new Recurso(corpo.id(), tipo, corpo.nome(),
+                corpo.localizacao(), corpo.capacidade(), corpo.restrito(), status,
                 corpo.competencias() == null ? Set.of() : Set.copyOf(corpo.competencias())));
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     public record RecursoJson(String id, String tipo, String nome, String localizacao, int capacidade,
                               boolean restrito, String status, List<String> competencias) {}
+
+    /** Converte o texto do campo no enum; valor ausente ou desconhecido vira 400 com os valores aceitos. */
+    private static <E extends Enum<E>> E enumDe(Class<E> tipo, String valor, String campo, String aceitos) {
+        if (valor == null || valor.isBlank()) {
+            throw new ErroAplicacao(400, "Informe o campo " + campo + " (valores: " + aceitos + ")");
+        }
+        try {
+            return Enum.valueOf(tipo, valor.trim().toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new ErroAplicacao(400, "Valor inválido para " + campo + ": " + valor + " (valores: " + aceitos + ")");
+        }
+    }
 }
