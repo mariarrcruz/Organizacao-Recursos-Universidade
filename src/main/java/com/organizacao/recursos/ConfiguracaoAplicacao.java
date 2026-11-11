@@ -2,6 +2,8 @@ package com.organizacao.recursos;
 
 import com.organizacao.recursos.persistencia.ArmazenamentoPostgres;
 import com.organizacao.recursos.servico.ServicoAutenticacao;
+import com.organizacao.recursos.servico.ServicoMovimentacoes;
+import com.organizacao.recursos.servico.ServicoRelatorios;
 import com.organizacao.recursos.servico.ServicoReservas;
 import java.time.Clock;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,5 +31,15 @@ public class ConfiguracaoAplicacao {
     @Bean
     ServicoReservas servicoReservas(ArmazenamentoPostgres armazenamento) {
         return new ServicoReservas(Clock.systemUTC(), armazenamento);
+    }
+
+    @Bean
+    ServicoMovimentacoes servicoMovimentacoes(ServicoReservas reservas) {
+        return new ServicoMovimentacoes(reservas);
+    }
+
+    @Bean
+    ServicoRelatorios servicoRelatorios(ServicoReservas reservas, ServicoMovimentacoes movimentacoes) {
+        return new ServicoRelatorios(reservas, movimentacoes);
     }
 }
