@@ -60,3 +60,7 @@ data/
 *.trace.db
 .env
 logs/
+
+# Performance (JMeter): resultados brutos e relatórios HTML gerados não são versionados
+perf/resultados/
+perf/relatorio-*/
