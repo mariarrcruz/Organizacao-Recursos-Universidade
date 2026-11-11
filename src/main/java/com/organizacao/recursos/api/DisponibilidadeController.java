@@ -42,8 +42,8 @@ public class DisponibilidadeController {
         Usuario ator = autenticacao.autenticar(autorizacao);
         Recurso recurso = armazenamento.buscarRecurso(recursoId)
                 .orElseThrow(() -> new ErroAplicacao(404, "Recurso não encontrado: " + recursoId));
-        LocalDateTime ini = Datas.instante(inicio);
-        LocalDateTime termino = Datas.instante(fim);
+        LocalDateTime ini = Datas.instante(inicio, "inicio");
+        LocalDateTime termino = Datas.instante(fim, "fim");
         boolean livre = recurso.status() == StatusRecurso.DISPONIVEL && servico.disponivel(ator, recursoId, ini, termino);
         return new DisponibilidadeJson(recursoId, inicio, fim, livre);
     }

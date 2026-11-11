@@ -27,6 +27,19 @@ public class TratadorErros extends ResponseEntityExceptionHandler {
         return problema(HttpStatus.valueOf(erro.getStatus()), erro.getMessage());
     }
 
+    /** Corpo ausente ou JSON malformado: mensagem em português em vez da genérica do Spring (DEF-006). */
+    @Override
+    protected ResponseEntity<Object> handleHttpMessageNotReadable(
+            org.springframework.http.converter.HttpMessageNotReadableException ex,
+            org.springframework.http.HttpHeaders headers, org.springframework.http.HttpStatusCode status,
+            org.springframework.web.context.request.WebRequest request) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+                "Corpo da requisição ausente ou malformado: envie um JSON válido");
+        pd.setType(URI.create("about:blank"));
+        pd.setTitle(HttpStatus.BAD_REQUEST.getReasonPhrase());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(pd);
+    }
+
     /** Falha não prevista (banco, bug): o detalhe técnico vai para o log do servidor, nunca para a resposta. */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> falhaInesperada(Exception falha) {
