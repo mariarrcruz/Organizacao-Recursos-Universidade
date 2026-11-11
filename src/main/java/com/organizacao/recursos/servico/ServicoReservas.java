@@ -139,14 +139,14 @@ public class ServicoReservas {
         if (destino == EstadoReserva.APROVADA) {
             verificarDisponibilidade(atual.getRecurso().id(), atual.getInicio(), atual.getFim(), atual.getId());
         }
-        if (destino == EstadoReserva.EM_USO && LocalDateTime.now(relogio).isBefore(atual.getInicio())) {
+        if (destino == EstadoReserva.EM_USO && antesDoInicio(atual)) {
             throw new ErroAplicacao(409, "Uso só pode começar a partir do horário de início");
         }
-        if (destino == EstadoReserva.NAO_COMPARECEU && LocalDateTime.now(relogio).isBefore(atual.getInicio())) {
+        if (destino == EstadoReserva.NAO_COMPARECEU && antesDoInicio(atual)) {
             throw new ErroAplicacao(409, "Não comparecimento só pode ser registrado após o início");
         }
         if (destino == EstadoReserva.CANCELADA && atual.getEstado() == EstadoReserva.APROVADA
-                && !LocalDateTime.now(relogio).isBefore(atual.getInicio())) {
+                && !antesDoInicio(atual)) {
             throw new ErroAplicacao(409, "Cancelamento só é permitido antes do início");
         }
         if (destino == EstadoReserva.REJEITADA || destino == EstadoReserva.CANCELADA) {
@@ -296,6 +296,11 @@ public class ServicoReservas {
         if (Duration.between(inicio, fim).compareTo(DURACAO_MINIMA) < 0) {
             throw new ErroAplicacao(400, "Duração mínima da reserva é de " + DURACAO_MINIMA.toMinutes() + " minuto(s)");
         }
+    }
+
+    /** Verdadeiro enquanto o horário de início da reserva ainda não chegou (relógio injetado). */
+    private boolean antesDoInicio(Reserva r) {
+        return LocalDateTime.now(relogio).isBefore(r.getInicio());
     }
 
     private static boolean ehDono(Usuario ator, Reserva r) {
