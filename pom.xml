@@ -15,7 +15,8 @@
     <maven.compiler.release>17</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <wiremock.version>3.9.1</wiremock.version>
-    <jackson.version>2.17.2</jackson.version>
+    <jackson.version>2.18.2</jackson.version>
+    <spring-boot.version>3.4.1</spring-boot.version>
     <spring.version>6.2.1</spring.version>
     <postgresql.version>42.7.4</postgresql.version>
     <testcontainers.version>1.21.3</testcontainers.version>
@@ -29,6 +30,26 @@
     <sonar.sources>src/main/java</sonar.sources>
     <sonar.tests>src/test/java</sonar.tests>
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- JUnit antes do BOM do Boot: o Cucumber exige JUnit Platform 1.12.x (ver junit-platform.version). -->
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>5.12.2</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-dependencies</artifactId>
+        <version>${spring-boot.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
     <!-- Leitura do contrato JSON da API externa de calendário institucional. -->
@@ -51,10 +72,10 @@
       <scope>test</scope>
     </dependency>
     <!-- Spring MVC (camada HTTP, controladores em com.organizacao.recursos.api). Sem Spring Boot por ora. -->
+    <!-- Aplicação executável: Tomcat embutido e Spring MVC (ADR-001). -->
     <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-webmvc</artifactId>
-      <version>${spring.version}</version>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
     <dependency>
       <groupId>jakarta.servlet</groupId>
@@ -80,13 +101,6 @@
       <groupId>org.testcontainers</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>${testcontainers.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <!-- Log do Testcontainers (diagnóstico de ambiente Docker na CI). -->
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-simple</artifactId>
-      <version>2.0.16</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -126,6 +140,19 @@
 
   <build>
     <plugins>
+      <!-- Jar executável: java -jar target/organizacao-recursos-0.1.0-SNAPSHOT.jar -->
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <version>${spring-boot.version}</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>repackage</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
       <!-- Necessário: o Surefire padrão de Maven antigos (2.12.4) não executa testes JUnit 5. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

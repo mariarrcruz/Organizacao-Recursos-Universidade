@@ -6,10 +6,12 @@ import com.organizacao.recursos.dominio.EventoAuditoria;
 import com.organizacao.recursos.dominio.Recurso;
 import com.organizacao.recursos.dominio.Reserva;
 import com.organizacao.recursos.dominio.Usuario;
+import com.organizacao.recursos.persistencia.Armazenamento;
 import com.organizacao.recursos.servico.ServicoAutenticacao;
 import com.organizacao.recursos.servico.ServicoReservas;
 import java.util.List;
 import java.util.function.Function;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -35,6 +37,13 @@ public class ReservasController {
     private final ServicoAutenticacao autenticacao;
     private final Function<String, Recurso> recursos;
 
+    /** Construtor da aplicação: o recurso é lido do armazenamento. */
+    @Autowired
+    public ReservasController(ServicoReservas servico, ServicoAutenticacao autenticacao, Armazenamento armazenamento) {
+        this(servico, autenticacao, id -> armazenamento.buscarRecurso(id).orElse(null));
+    }
+
+    /** Construtor para testes: o recurso vem de uma função (cadastro em memória). */
     public ReservasController(ServicoReservas servico, ServicoAutenticacao autenticacao,
                               Function<String, Recurso> recursos) {
         this.servico = servico;
