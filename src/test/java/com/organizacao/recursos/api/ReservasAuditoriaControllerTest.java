@@ -1,6 +1,7 @@
 package com.organizacao.recursos.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 import com.organizacao.recursos.dominio.Perfil;
@@ -60,10 +61,13 @@ class ReservasAuditoriaControllerTest {
     @Test
     void responsavelConsultaHistorico() throws Exception {
         String id = novaReserva();
-        int status = mvc.perform(get("/reservas/" + id + "/auditoria")
+        var resposta = mvc.perform(get("/reservas/" + id + "/auditoria")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("resp", "RESPONSAVEL")))
-                .andReturn().getResponse().getStatus();
-        assertEquals(200, status);
+                .andReturn().getResponse();
+        assertEquals(200, resposta.getStatus());
+        // RF-10 / RFC RF-11: cada registro traz o instante (Clock: 2026-11-05 09:00 UTC)
+        assertTrue(resposta.getContentAsString().contains("\"instante\":\"2026-11-05T09:00:00\""),
+                resposta.getContentAsString());
     }
 
     @Test
