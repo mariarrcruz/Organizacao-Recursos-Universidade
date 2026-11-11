@@ -17,6 +17,8 @@
     <wiremock.version>3.9.1</wiremock.version>
     <jackson.version>2.17.2</jackson.version>
     <spring.version>6.2.1</spring.version>
+    <postgresql.version>42.7.4</postgresql.version>
+    <testcontainers.version>1.21.3</testcontainers.version>
     <cucumber.version>7.20.1</cucumber.version>
     <junit-platform.version>1.12.2</junit-platform.version>
     <!-- Metas do gate JaCoCo (fase verify). Sobrescrevíveis por -D para validar a falha. -->
@@ -67,6 +69,32 @@
       <version>${spring.version}</version>
       <scope>test</scope>
     </dependency>
+    <!-- PostgreSQL (persistência de reservas; ADR-016). Driver JDBC puro, sem ORM. -->
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>${postgresql.version}</version>
+    </dependency>
+    <!-- Testcontainers: PostgreSQL real em contêiner nos testes de concorrência. -->
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${testcontainers.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- Log do Testcontainers (diagnóstico de ambiente Docker na CI). -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>2.0.16</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>${testcontainers.version}</version>
+      <scope>test</scope>
+    </dependency>
     <!-- Cucumber-JVM (especificação executável, docs/testes/bdd-aprovacao-bloqueio.md). Escopo de teste. -->
     <dependency>
       <groupId>io.cucumber</groupId>
@@ -103,6 +131,12 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.2.5</version>
+        <configuration>
+          <systemPropertyVariables>
+            <!-- Testcontainers: o cliente Docker antigo envia API 1.32, recusada pelo Docker 25+ (mín. 1.40). -->
+            <api.version>1.40</api.version>
+          </systemPropertyVariables>
+        </configuration>
       </plugin>
       <!-- Cobertura: relatórios HTML/XML na fase verify e gate mínimo (linhas 80%, branches 70%). -->
       <plugin>
