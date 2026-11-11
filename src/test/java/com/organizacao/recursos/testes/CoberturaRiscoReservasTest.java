@@ -85,7 +85,7 @@ class CoberturaRiscoReservasTest {
     @Test
     @DisplayName("APROVADA → EM_USO é permitido ao dono e ao Responsável")
     void aprovadaParaEmUsoPermitido() {
-        ServicoReservas s = servicoEm(t("09:00"));
+        ServicoReservas s = servicoEm(t("10:30"));
         Reserva aprovada = reserva("R1", alice, sala, "10:00", "11:00", EstadoReserva.APROVADA);
         s.registrarExistente(aprovada);
         assertEquals(EstadoReserva.EM_USO, s.iniciarUso(alice, aprovada).getEstado());
@@ -94,7 +94,7 @@ class CoberturaRiscoReservasTest {
     @Test
     @DisplayName("APROVADA → EM_USO por Responsável é permitido")
     void aprovadaParaEmUsoPeloResponsavel() {
-        ServicoReservas s = servicoEm(t("09:00"));
+        ServicoReservas s = servicoEm(t("10:30"));
         Reserva aprovada = reserva("R1", alice, sala, "10:00", "11:00", EstadoReserva.APROVADA);
         s.registrarExistente(aprovada);
         assertEquals(EstadoReserva.EM_USO, s.iniciarUso(resp, aprovada).getEstado());

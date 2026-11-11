@@ -49,7 +49,9 @@ class RN09RastreabilidadeTest {
     @Test
     @DisplayName("RN-09.3 — Transição para EM_USO: registro de auditoria criado")
     void rn09_3_inicioUsoGeraAuditoria() {
-        // Arrange
+        // Arrange — uso só começa a partir de 10:00 (Q7); relógio local às 10:30
+        ServicoReservas servico = new ServicoReservas(
+                java.time.Clock.fixed(t("10:30").toInstant(java.time.ZoneOffset.UTC), java.time.ZoneOffset.UTC));
         Reserva aprovada = reserva("R1", alice, sala, "10:00", "11:00", EstadoReserva.APROVADA);
         servico.registrarExistente(aprovada);
         servico.iniciarUso(alice, aprovada);
