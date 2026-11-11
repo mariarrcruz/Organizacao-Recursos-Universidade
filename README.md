@@ -91,6 +91,7 @@ Use o valor de `token` como `Authorization: Bearer <token>`. **Fora do laborató
 | `POST /reservas/{id}/nao-comparecimento` | Responsável | Registra não comparecimento, após o início |
 | `POST /reservas/{id}/transicoes` | Conforme a transição | Forma genérica de transição |
 | `GET /reservas/{id}/auditoria` | Responsável, Administrador | Histórico da reserva: ação, ator, instante, estado anterior e novo, justificativa |
+| `GET /relatorios/utilizacao?inicio=&fim=` | Responsável, Administrador | Horas por recurso, carga horária por professor e conflitos evitados no período (ver abaixo) |
 
 ### Fluxo mínimo
 
@@ -106,6 +107,40 @@ Use o valor de `token` como `Authorization: Bearer <token>`. **Fora do laborató
 - **Auditoria append-only.** Cada mudança de estado grava um registro na mesma transação da mudança. Um trigger no banco recusa `UPDATE` e `DELETE` em `evento_auditoria`. A API não tem rota para alterar nem apagar auditoria: `PUT` e `DELETE` em `/reservas/{id}/auditoria` retornam `405`.
 
 ---
+
+### Relatório de utilização
+
+`GET /relatorios/utilizacao?inicio=AAAA-MM-DD&fim=AAAA-MM-DD` (dias inclusivos; `fim` não pode ser anterior a `inicio`, ou a resposta é `400`).
+
+Regras de contagem:
+
+- **Horas** contam só reservas em `APROVADA`, `EM_USO` e `CONCLUIDA`. Canceladas, rejeitadas, pendentes (`SOLICITADA`) e não comparecimentos não contam como uso.
+- **Recorte pelo período.** Cada reserva conta só a parte que cai entre `inicio 00:00` e `fim + 1 dia 00:00`. Reserva que cruza a borda entra com o trecho interno.
+- **Carga horária por professor** é o total de horas dos recursos do tipo `PROFESSOR`.
+- **Conflito evitado** é uma tentativa recusada (`409`) por sobreposição com reserva cujo intervalo cruza o período. Recusas por manutenção não entram.
+
+Exemplo de resposta, com a massa do teste `massaSemeada_retornaHorasCargaEConflitos` (`RelatorioUtilizacaoContrato`):
+
+```json
+{
+  "inicio": "2026-11-05",
+  "fim": "2026-11-05",
+  "recursos": [
+    {"recursoId": "PROF-1", "tipo": "PROFESSOR", "horas": 2.0},
+    {"recursoId": "SALA-A", "tipo": "SALA", "horas": 4.0}
+  ],
+  "cargaHorariaPorProfessor": [{"professorId": "PROF-1", "horas": 2.0}],
+  "conflitosEvitados": {
+    "total": 2,
+    "porRecurso": [
+      {"recursoId": "PROF-1", "quantidade": 1},
+      {"recursoId": "SALA-A", "quantidade": 1}
+    ]
+  }
+}
+```
+
+Códigos: `401` sem token, `403` para Solicitante, `400` para período inválido.
 
 ## Arquitetura
 
@@ -173,7 +208,7 @@ Detalhes e ações em `docs/status-requisitos.md`, seção 5.
 - **Responsável não é vinculado a recursos.** Qualquer Responsável aprova qualquer reserva restrita (PEN-01c).
 - **Sem gestão de recursos além do cadastro.** Não há `GET /recursos`, `PUT` nem `DELETE` (PEN-05).
 - **Sem interface web.** A API é o único ponto de entrada (PEN-06).
-- **Sem movimentações (retirada e devolução) nem relatórios HTTP** (PEN-07).
+- **Sem movimentações (retirada e devolução) e sem os demais relatórios HTTP** (carga por sala, contagem por estado, movimentações). O relatório de utilização já está disponível (PEN-07).
 - **Sem notificações nem lista de pendentes** (PEN-08).
 - **Recursos não são auditados.** A auditoria cobre só as reservas.
 
