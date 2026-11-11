@@ -30,7 +30,7 @@ class RN02ExclusividadeAlocacaoTest {
         Reserva nova = servico.solicitar(alice, r1, t("14:00"), t("15:00"));
         // Assert
         assertNotNull(nova);
-        assertEquals(EstadoReserva.SOLICITADA, nova.getEstado());
+        assertEquals(EstadoReserva.APROVADA, nova.getEstado());
     }
 
     @Test
@@ -42,7 +42,7 @@ class RN02ExclusividadeAlocacaoTest {
         Reserva nova = servico.solicitar(alice, r1, t("11:00"), t("12:00"));
         // Assert
         assertNotNull(nova);
-        assertEquals(EstadoReserva.SOLICITADA, nova.getEstado());
+        assertEquals(EstadoReserva.APROVADA, nova.getEstado());
     }
 
     @Test
@@ -111,6 +111,6 @@ class RN02ExclusividadeAlocacaoTest {
         Reserva nova = servico.solicitar(alice, r3, t("10:00"), t("11:00"));
         // Assert
         assertNotNull(nova);
-        assertEquals(EstadoReserva.SOLICITADA, nova.getEstado());
+        assertEquals(EstadoReserva.APROVADA, nova.getEstado());
     }
 }

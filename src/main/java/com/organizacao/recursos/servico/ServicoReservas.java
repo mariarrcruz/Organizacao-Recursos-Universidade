@@ -58,9 +58,10 @@ public class ServicoReservas {
             throw new ErroAplicacao(409, "Recurso indisponível para reserva");
         }
         verificarDisponibilidade(recurso.id(), inicio, fim, null);
-        Reserva nova = new Reserva(UUID.randomUUID().toString(), ator, recurso, inicio, fim, EstadoReserva.SOLICITADA);
+        EstadoReserva inicial = recurso.restrito() ? EstadoReserva.SOLICITADA : EstadoReserva.APROVADA;
+        Reserva nova = new Reserva(UUID.randomUUID().toString(), ator, recurso, inicio, fim, inicial);
         armazenadas.add(nova);
-        registrarEvento(nova.getId(), ator, "SOLICITAR", null, EstadoReserva.SOLICITADA, null);
+        registrarEvento(nova.getId(), ator, "SOLICITAR", null, inicial, null);
         return nova;
     }
 

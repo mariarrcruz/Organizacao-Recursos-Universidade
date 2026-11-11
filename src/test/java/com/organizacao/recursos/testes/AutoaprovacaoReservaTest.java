@@ -23,7 +23,7 @@ class AutoaprovacaoReservaTest {
     void usuarioComDoisPerfisNaoAprovaPropriaReserva() {
         // Arrange
         Usuario carla = new Usuario("carla", Set.of(Perfil.SOLICITANTE, Perfil.RESPONSAVEL));
-        Recurso sala02 = sala("SALA-02", false);
+        Recurso sala02 = sala("SALA-02", true);
         Reserva solicitada = servico.solicitar(carla, sala02, t("10:00"), t("11:00"));
         // Act & Assert
         assertErro(403, () -> servico.aprovar(carla, solicitada));

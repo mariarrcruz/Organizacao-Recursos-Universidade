@@ -19,7 +19,7 @@ class RevalidacaoAprovacaoTest {
     private final Usuario alice = solicitante("alice");
     private final Usuario resp = responsavel("resp");
     private final Usuario admin = administrador("adm");
-    private final Recurso sala01 = sala("SALA-01", false);
+    private final Recurso sala01 = sala("SALA-01", true);
 
     @Test
     @DisplayName("Manutenção criada após a solicitação sobrepõe a reserva: aprovação recusada com 409 e estado continua SOLICITADA")

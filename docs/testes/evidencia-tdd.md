@@ -31,3 +31,17 @@
 - **Q9 (cancelamento no instante do início):** já passa com o código atual, que recusa com 409 quando `agora >= início`. Não gera vermelho.
 - **Demais cenários do documento:** a maioria já passa com o código atual. Um teste que já passa não pode ser visto vermelho, o que quebra a regra do ciclo.
 - **Injeção de `Clock` nas regras de manutenção:** não há teste vermelho que a exija hoje.
+
+## Ciclo — Recurso livre entra APROVADA (PRD RF-07, RN-07)
+
+Decisão do usuário: seguir o PRD. Aprovação é exigida só para recurso restrito; recurso livre entra já `APROVADA`.
+
+| Cenário | Commit red | Commit green | Commit refactor | Trecho da saída do teste (red) |
+|---|---|---|---|---|
+| Reserva de recurso livre nasce APROVADA sem aprovação de Responsável | `f4f87a1` | (ver histórico do branch) | não aplicável | `expected: <APROVADA> but was: <SOLICITADA>` |
+
+**Ajustes de expectativa exigidos pela regra nova** (não são alterações para fazer teste passar; a regra mudou):
+- Testes que criam reserva em recurso **livre** e esperavam `SOLICITADA` passam a esperar `APROVADA`: `RN01OrdemTemporalTest` (1), `RN02ExclusividadeAlocacaoTest` (3), `RN04ManutencaoTest` (4), `RF15ControleAcessoPerfilTest` (2).
+- `AutoaprovacaoReservaTest` e `RevalidacaoAprovacaoTest` usam recurso **restrito**, porque o cenário pressupõe reserva aguardando aprovação (`SOLICITADA`).
+
+**Suíte:** `./mvnw -B test` — 276 testes, 0 falhas, `BUILD SUCCESS`.
