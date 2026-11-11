@@ -393,3 +393,22 @@ O PRD não decide estes pontos. Nenhum foi resolvido por suposição nos cenári
 | Concorrência de duas solicitações no mesmo horário (RN-03) | Fora deste escopo; cenário já coberto em outra etapa do plano |
 
 **Pendente de decisão antes de virar teste:** Q1 a Q5 bloqueiam os cenários marcados com "Q" acima. Q6 a Q10 afetam apenas as asserções de borda e podem ser escritas hoje com o comportamento atual, marcadas como "comportamento atual, não confirmado pelo PRD".
+
+---
+
+## Resolução das perguntas em aberto
+
+Decisões tomadas pela equipe de QA com base no PRD e no RTM quando o documento não decidia. Cada uma tem commit de teste ou está registrada como comportamento já existente.
+
+- **Q1 — Recurso livre precisa de aprovação?** Não. Só recurso restrito exige aprovação de Responsável (PRD RF-07, RN-07). Recurso livre entra já `APROVADA`. Commits `f4f87a1` / `ac22ade`.
+- **Q2 — Quem tem SOLICITANTE e RESPONSAVEL pode aprovar a própria reserva?** Não. A regra vale para qualquer usuário, nas decisões de aprovação: `APROVADA` e `REJEITADA`. `NAO_COMPARECEU` continua só para Responsável, porque é registro de execução, não decisão sobre a aprovação. Commits `c5b34a7` / `18e4e51` (aprovação) e `6fd1a0c` / `f270594` (rejeição).
+- **Q3 — Administrador aprova?** Não. Já é o comportamento e já está coberto por `RN07AlcadaAprovacaoTest.rn07_3`. Sem alteração.
+- **Q4 — Manutenção é intervalo fechado ou semiaberto?** Semiaberto `[início, fim)`, como nas reservas. A adjacência já está coberta por `RN04.3`. As fronteiras B4, B5 e B7 já passam com o código atual e não foram escritas como teste novo, pela regra de não pular o vermelho.
+- **Q5 — Manutenção posterior sobrepõe reserva já solicitada?** Aprovação revalida disponibilidade e manutenção e recusa com 409, sem aprovar. Commits `592fb3d` / `d796aae`.
+- **Q6 — Status do recurso bloqueia alteração?** Sim. Qualquer status diferente de `DISPONIVEL` (inclusive `INDISPONIVEL`) recusa a alteração com 409, como já recusa a criação. Commits `9b7bbe9` / `e6642f5`.
+- **Q7 — Quem inicia o uso e quando?** Dono ou Responsável, e só a partir do horário de início da reserva (RTM propõe "início do horário"). Commits `7506a4d` / `d3fb235`. Uso de materiais por retirada fica fora deste escopo.
+- **Q8 — Quem registra não comparecimento e quando?** Só Responsável, e só a partir do horário de início. Commits `51b18d3` / `c229abe`.
+- **Q9 — Cancelamento exatamente no início?** Recusado. Só é permitido antes do início, como diz o RTM. Já é o comportamento; sem teste novo.
+- **Q10 — Transição repetida (CONCLUIDA → CONCLUIDA)?** Recusada com 409, não ignorada. Já é o comportamento; sem teste novo.
+
+**Observação sobre o F2 do cenário:** a nota "Hoje o serviço permite esta aprovação" deixou de valer após o commit `18e4e51`.

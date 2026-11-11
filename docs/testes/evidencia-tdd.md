@@ -64,3 +64,17 @@ Levantamento feito no código em `main` (ac22ade) e na suíte (`./mvnw -B test`:
 **Refactor:** não aplicável em nenhum ciclo; sem mudança de comportamento não havia o que limpar.
 
 **Questões em aberto que dependem de decisão:** Q2 (escopo da autoaprovação: implementado só para APROVADA), Q3, Q4, Q6, Q7, Q8 e Q10, sem decisão registrada.
+
+## Resolução das questões abertas (Q2, Q6, Q7, Q8) e refactor
+
+| Cenário | Commit red | Commit green | Commit refactor | Trecho da saída do teste (red) |
+|---|---|---|---|---|
+| Q2 — usuário com SOLICITANTE e RESPONSAVEL não rejeita a própria reserva (403) | `6fd1a0c` | `f270594` | — | `Expected ErroAplicacao to be thrown, but nothing was thrown.` |
+| Q6 — alteração em recurso com status MANUTENCAO é recusada (409) | `9b7bbe9` | `e6642f5` | — | `Expected ErroAplicacao to be thrown, but nothing was thrown.` |
+| Q7 — início de uso antes do horário de início é recusado (409) | `7506a4d` | `d3fb235` | — | `Expected ErroAplicacao to be thrown, but nothing was thrown.` |
+| Q8 — não comparecimento antes do início é recusado (409) | `51b18d3` | `c229abe` | — | `Expected ErroAplicacao to be thrown, but nothing was thrown.` |
+| Refactor — extrai `antesDoInicio` (sem mudança de comportamento) | — | — | (commit `refactor:` acima de `c229abe`) | não aplicável (suíte verde antes e depois) |
+
+**Ajustes de teste exigidos pelas regras de Q7 e Q8** (a regra mudou; o teste não foi relaxado): relógio do teste movido para dentro da janela da reserva em `CoberturaRiscoReservasTest` (2 testes), `RN09RastreabilidadeTest.rn09_3` e `RN06EstadosAlternativosTest.rn06_4`.
+
+**Suíte final:** `./mvnw -B test` — 280 testes, 0 falhas, `BUILD SUCCESS`.
