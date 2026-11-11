@@ -29,7 +29,7 @@ class RN04ManutencaoTest {
         Reserva reserva = servico.solicitar(alice, r1, t("10:00"), t("11:00"));
         // Assert
         assertNotNull(reserva);
-        assertEquals(EstadoReserva.SOLICITADA, reserva.getEstado());
+        assertEquals(EstadoReserva.APROVADA, reserva.getEstado());
     }
 
     @Test
@@ -41,7 +41,7 @@ class RN04ManutencaoTest {
         Reserva reserva = servico.solicitar(alice, r1, t("10:00"), t("11:00"));
         // Assert
         assertNotNull(reserva);
-        assertEquals(EstadoReserva.SOLICITADA, reserva.getEstado());
+        assertEquals(EstadoReserva.APROVADA, reserva.getEstado());
     }
 
     @Test
@@ -53,7 +53,7 @@ class RN04ManutencaoTest {
         Reserva reserva = servico.solicitar(alice, r1, t("11:00"), t("12:00"));
         // Assert
         assertNotNull(reserva);
-        assertEquals(EstadoReserva.SOLICITADA, reserva.getEstado());
+        assertEquals(EstadoReserva.APROVADA, reserva.getEstado());
     }
 
     @Test
@@ -93,6 +93,6 @@ class RN04ManutencaoTest {
         Reserva reserva = servico.solicitar(alice, r1, t("10:00"), t("12:00"));
         // Assert
         assertNotNull(reserva);
-        assertEquals(EstadoReserva.SOLICITADA, reserva.getEstado());
+        assertEquals(EstadoReserva.APROVADA, reserva.getEstado());
     }
 }

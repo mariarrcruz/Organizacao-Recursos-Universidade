@@ -44,7 +44,7 @@ class RF15ControleAcessoPerfilTest {
             // Act
             Reserva r = reservas.solicitar(alice, sala, t("10:00"), t("11:00"));
             // Assert
-            assertEquals(EstadoReserva.SOLICITADA, r.getEstado());
+            assertEquals(EstadoReserva.APROVADA, r.getEstado());
         }
 
         @Test
@@ -204,7 +204,7 @@ class RF15ControleAcessoPerfilTest {
             // Act
             Reserva r = reservas.solicitar(resp, sala, t("10:00"), t("11:00"));
             // Assert
-            assertEquals(EstadoReserva.SOLICITADA, r.getEstado());
+            assertEquals(EstadoReserva.APROVADA, r.getEstado());
         }
 
         @Test

@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # histórico completo: o SonarCloud calcula "novo código" e blame
 
       - name: Set up JDK 21 (Temurin) with Maven cache
         uses: actions/setup-java@v4
@@ -30,6 +32,21 @@ jobs:
 
       - name: Build and test (./mvnw -B verify)
         run: ./mvnw -B verify
+
+      - name: SonarCloud analysis (plugin Maven)
+        # Não roda em PR vindo de fork (sem acesso ao secret). O token vai só pela variável de ambiente.
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        # Roda depois do verify, que já gerou target/classes, target/test-classes e target/site/jacoco/jacoco.xml.
+        # SONAR_HOST_URL aponta para um SonarQube próprio; sem a variável, usa o SonarCloud.
+        # Um SonarQube em localhost não é alcançável pelos runners hospedados do GitHub: nesse caso
+        # o job precisa rodar em self-hosted runner dentro da mesma rede.
+        run: >-
+          ./mvnw -B org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar
+          -Dsonar.host.url=${{ vars.SONAR_HOST_URL || 'https://sonarcloud.io' }}
+          -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+          -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
 
       - name: Upload test reports
         if: always()

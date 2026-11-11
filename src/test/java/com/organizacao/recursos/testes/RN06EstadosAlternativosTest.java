@@ -58,7 +58,10 @@ class RN06EstadosAlternativosTest {
     @Test
     @DisplayName("RN-06.4 — APROVADA → NÃO COMPARECEU (registro de ausência): permitido")
     void rn06_4_aprovadaParaNaoComparecimento() {
-        // Arrange
+        // Arrange — não comparecimento só após o início (Q8); relógio local às 10:30 do dia da reserva
+        ServicoReservas servico = new ServicoReservas(java.time.Clock.fixed(
+                java.time.LocalDateTime.of(2026, 11, 5, 10, 30).atZone(java.time.ZoneId.systemDefault()).toInstant(),
+                java.time.ZoneId.systemDefault()));
         Reserva aprovada = reserva("R1", alice, sala, "10:00", "11:00", EstadoReserva.APROVADA);
         servico.registrarExistente(aprovada);
         // Act

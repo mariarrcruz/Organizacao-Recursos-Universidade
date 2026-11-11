@@ -14,16 +14,112 @@
     <maven.compiler.target>17</maven.compiler.target>
     <maven.compiler.release>17</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <wiremock.version>3.9.1</wiremock.version>
+    <jackson.version>2.17.2</jackson.version>
+    <spring.version>6.2.1</spring.version>
+    <postgresql.version>42.7.4</postgresql.version>
+    <testcontainers.version>1.21.3</testcontainers.version>
+    <cucumber.version>7.20.1</cucumber.version>
+    <junit-platform.version>1.12.2</junit-platform.version>
     <!-- Metas do gate JaCoCo (fase verify). Sobrescrevíveis por -D para validar a falha. -->
     <jacoco.line.minimum>0.80</jacoco.line.minimum>
     <jacoco.branch.minimum>0.70</jacoco.branch.minimum>
+    <!-- SonarCloud: lê o XML do JaCoCo gerado na fase verify. Organização e projeto vêm de vars do GitHub. -->
+    <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+    <sonar.sources>src/main/java</sonar.sources>
+    <sonar.tests>src/test/java</sonar.tests>
   </properties>
 
   <dependencies>
+    <!-- Leitura do contrato JSON da API externa de calendário institucional. -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>5.12.2</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- WireMock (RNF-08): simula integrações HTTP externas. Escopo de teste; nunca vai ao artefato. -->
+    <dependency>
+      <groupId>org.wiremock</groupId>
+      <artifactId>wiremock-standalone</artifactId>
+      <version>${wiremock.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- Spring MVC (camada HTTP, controladores em com.organizacao.recursos.api). Sem Spring Boot por ora. -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-webmvc</artifactId>
+      <version>${spring.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
+      <version>6.0.0</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- MockMvc standalone para as features (chamadas HTTP sem servidor). -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-test</artifactId>
+      <version>${spring.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- PostgreSQL (persistência de reservas; ADR-016). Driver JDBC puro, sem ORM. -->
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>${postgresql.version}</version>
+    </dependency>
+    <!-- Testcontainers: PostgreSQL real em contêiner nos testes de concorrência. -->
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${testcontainers.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- Log do Testcontainers (diagnóstico de ambiente Docker na CI). -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>2.0.16</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>${testcontainers.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- Cucumber-JVM (especificação executável, docs/testes/bdd-aprovacao-bloqueio.md). Escopo de teste. -->
+    <dependency>
+      <groupId>io.cucumber</groupId>
+      <artifactId>cucumber-java</artifactId>
+      <version>${cucumber.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.cucumber</groupId>
+      <artifactId>cucumber-junit-platform-engine</artifactId>
+      <version>${cucumber.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- Suíte JUnit Platform que hospeda o motor Cucumber (@Suite). Versão alinhada ao JUnit 5.12.2:
+         sem a declaração direta, o cucumber-junit-platform-engine traria junit-platform-engine 1.11.2. -->
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-suite</artifactId>
+      <version>${junit-platform.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-engine</artifactId>
+      <version>${junit-platform.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -35,6 +131,12 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.2.5</version>
+        <configuration>
+          <systemPropertyVariables>
+            <!-- Testcontainers: o cliente Docker antigo envia API 1.32, recusada pelo Docker 25+ (mín. 1.40). -->
+            <api.version>1.40</api.version>
+          </systemPropertyVariables>
+        </configuration>
       </plugin>
       <!-- Cobertura: relatórios HTML/XML na fase verify e gate mínimo (linhas 80%, branches 70%). -->
       <plugin>
