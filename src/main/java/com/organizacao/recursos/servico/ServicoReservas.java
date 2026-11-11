@@ -168,7 +168,8 @@ public class ServicoReservas {
     private static void exigirAutorizacaoTransicao(Usuario ator, Reserva r, EstadoReserva destino) {
         boolean permitido = switch (destino) {
             case APROVADA -> tem(ator, Perfil.RESPONSAVEL) && !ehDono(ator, r);
-            case REJEITADA, NAO_COMPARECEU -> tem(ator, Perfil.RESPONSAVEL);
+            case REJEITADA -> tem(ator, Perfil.RESPONSAVEL) && !ehDono(ator, r);
+            case NAO_COMPARECEU -> tem(ator, Perfil.RESPONSAVEL);
             case CANCELADA -> ehDono(ator, r);
             case EM_USO, CONCLUIDA -> ehDono(ator, r) || tem(ator, Perfil.RESPONSAVEL);
             default -> false;
