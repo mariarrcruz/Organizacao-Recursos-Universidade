@@ -122,7 +122,7 @@ Sistema de Organização de Recursos — auditoria em 11/11/2026 (semana ISO 46)
 
 **PEN-09 — RF-10: data ausente na auditoria.** ✅ **Resolvido:** `EventoJson` inclui `instante`, coberto por `ReservasAuditoriaControllerTest.responsavelConsultaHistorico`.
 
-**PEN-10 — RF-14 e RTM-01: documentação desatualizada.**
+**PEN-10 — RF-14 e RTM-01: documentação desatualizada.** ✅ **Resolvido:** `README.md` reescrito a partir do código (sem H2, JPA, Thymeleaf ou `/auth/login`); `docs/RTM.md` com §5.3 e §6.1 atualizados e Anexo A alinhado a este status.
 - README descreve H2/JPA/Thymeleaf/`/auth/login`/`/health` que não existem, e afirma que não há ponto de entrada web. `docs/RTM.md` marca como "Planejado" itens já implementados e verificados (Anexo A: RF-01, RF-06, RF-10, RNF-04, COV, SEC; §5.3: "CI pendente", embora o CI já esteja verde). Ação: reescrever as seções de estado do README e atualizar o Anexo A com as evidências deste documento.
 
 **PEN-11 — QUAL-01: qualidade de alguns testes.**

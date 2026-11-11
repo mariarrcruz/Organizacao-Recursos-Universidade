@@ -803,11 +803,11 @@ Para cada grupo: objetivo, risco coberto, nível, cenário positivo, cenário ne
 
 **Nota sobre cobertura (QUAL-01 / COV-01 / COV-02):** cobertura de linhas ≥ 80% e branches ≥ 70% (JaCoCo) é uma meta, não garantia de qualidade. Testes devem conter asserções reais de negócio; cobertura por testes triviais não é aceita.
 
-### 5.3 TDD / BDD (evidência de prática — planejada)
+### 5.3 TDD / BDD (evidência de prática — executada)
 
 Pelo menos uma funcionalidade crítica deve ser desenvolvida com TDD ou BDD (RNF-05/RNF-10). A evidência deve ser o histórico de commits (teste falhando → implementação → teste passando) e/ou cenários BDD, registrados no repositório.
 
-**Situação:** especificação executável implementada com Cucumber-JVM em `src/test/resources/features/` (4 arquivos, 80 cenários e exemplos), executada por `src/test/java/com/organizacao/recursos/bdd/RodarCenariosTest.java` dentro de `./mvnw -B verify`. Execução local verde, com o gate JaCoCo passando. A execução no CI do pull request ainda não foi verificada. Todas as ações e verificações passam pela API HTTP: MockMvc sobre os controladores de `src/main/java/com/organizacao/recursos/api/` (`ReservasController`, `ManutencaoController`, `TratadorErros`), com token JWT emitido pelo `ServicoAutenticacao` para cada perfil. Só o relógio e o cadastro de recursos são preparados diretamente. Os 80 casos rodaram via HTTP. A camada web não é uma aplicação Spring Boot: é Spring MVC, sem bootstrap de aplicação nem endpoint de login (lacuna 5 de `docs/testes/bdd-aprovacao-bloqueio.md`, parcialmente resolvida).
+**Situação:** especificação executável implementada com Cucumber-JVM em `src/test/resources/features/` (4 arquivos, 80 cenários e exemplos), executada por `src/test/java/com/organizacao/recursos/bdd/RodarCenariosTest.java` dentro de `./mvnw -B verify`. Execução local verde, com o gate JaCoCo passando. A execução no CI está verde: runs 43084764936 (pull request) e 43084968220 (push em `main`), verificados com `gh run list`. Todas as ações e verificações passam pela API HTTP: MockMvc sobre os controladores de `src/main/java/com/organizacao/recursos/api/` (`ReservasController`, `ManutencaoController`, `TratadorErros`), com token JWT emitido pelo `ServicoAutenticacao` para cada perfil. Só o relógio e o cadastro de recursos são preparados diretamente. Os 80 casos rodaram via HTTP. A aplicação é Spring Boot executável (`AplicacaoRecursos`, ADR-001), mas não há endpoint de login por senha: o token vem de `POST /dev/tokens`, só com `app.dev.tokens=true` (lacuna 5 de `docs/testes/bdd-aprovacao-bloqueio.md`, parcialmente resolvida; PEN-01b em `docs/status-requisitos.md`).
 
 ### 5.3.1 Rastreabilidade requisito → cenário BDD → teste → commit
 
@@ -846,7 +846,7 @@ Cada defeito corrigido deve ter:
 
 ## 6. CI, cobertura e análise estática
 
-### 6.1 Pipeline GitHub Actions (planejado)
+### 6.1 Pipeline GitHub Actions (implementado)
 
 Executa a cada pull request (RNF-04/RNF-09):
 
@@ -1067,15 +1067,15 @@ A ocorrência de qualquer um inviabiliza a aprovação máxima:
 
 | ID origem | Requisito/Regra | Tipo | Criticidade | Componente | Risco | Teste (TG) | Critério de aceitação | Evidência | Situação |
 |---|---|---|---|---|---|---|---|---|---|
-| PRD RF-01 / RFC RF-01 | Autenticação e autorização por perfil com JWT | Funcional | Crítica | identity, security | Falha de autorização | TG-06 | Token válido; acessos não autorizados rejeitados | Relatório de segurança, matriz de autorização | Planejado |
-| PRD RF-06 / RFC RF-07 | Prevenção de dupla reserva concorrente | Funcional | Crítica | reservations, availability | Dupla reserva | TG-07 | No máximo 1 reserva por alocação sob concorrência | Estado final do banco, relatório de concorrência | Planejado |
-| PRD RF-10 / RFC RF-11 | Auditoria de alterações | Funcional | Alta | audit | Auditoria incompleta | TG-03, TG-01 | Cada mudança de estado gera registro | Tabela AuditEvent, teste de imutabilidade | Planejado |
-| RFC RNF-02 | Integridade sob concorrência | Não funcional | Crítica | reservations | Inconsistência transacional | TG-03, TG-07 | Sem reservas duplicadas; rejeição determinística | Relatório de integração e concorrência | Planejado |
-| COV-01 / COV-02 / RNF-11 | Cobertura linhas ≥80%, branches ≥70% | Qualidade | Alta | Suíte de testes | Cobertura artificial | Pipeline | JaCoCo dentro das metas | Relatório JaCoCo | Planejado |
-| SEC-01 / RNF-01 | 0 bugs/vulnerabilidades críticos | Qualidade | Crítica | security | Vuleração crítica | TG-06, SonarCloud | Sem críticas no SonarCloud | Relatório SonarCloud | Planejado |
+| PRD RF-01 / RFC RF-01 | Autenticação e autorização por perfil com JWT | Funcional | Crítica | identity, security | Falha de autorização | TG-06 | Token válido; acessos não autorizados rejeitados | Relatório de segurança, matriz de autorização | Parcial: JWT validado por testes; login real ausente (PEN-01) |
+| PRD RF-06 / RFC RF-07 | Prevenção de dupla reserva concorrente | Funcional | Crítica | reservations, availability | Dupla reserva | TG-07 | No máximo 1 reserva por alocação sob concorrência | Estado final do banco, relatório de concorrência | Implementado e validado (concorrência em PostgreSQL; DEF-001, DEF-002) |
+| PRD RF-10 / RFC RF-11 | Auditoria de alterações | Funcional | Alta | audit | Auditoria incompleta | TG-03, TG-01 | Cada mudança de estado gera registro | Tabela AuditEvent, teste de imutabilidade | Parcial: histórico com instante, append-only e validado; recursos sem auditoria |
+| RFC RNF-02 | Integridade sob concorrência | Não funcional | Crítica | reservations | Inconsistência transacional | TG-03, TG-07 | Sem reservas duplicadas; rejeição determinística | Relatório de integração e concorrência | Implementado e validado (mesma evidência de RF-06) |
+| COV-01 / COV-02 / RNF-11 | Cobertura linhas ≥80%, branches ≥70% | Qualidade | Alta | Suíte de testes | Cobertura artificial | Pipeline | JaCoCo dentro das metas | Relatório JaCoCo | Implementado: gate JaCoCo ativo no `verify` |
+| SEC-01 / RNF-01 | 0 bugs/vulnerabilidades críticos | Qualidade | Crítica | security | Vuleração crítica | TG-06, SonarCloud | Sem críticas no SonarCloud | Relatório SonarCloud | Pendente: Quality Gate do SonarCloud não verificado (PEN-04) |
 | RTM-01 | RTM completa | Qualidade | Alta | Documentação | Falta de rastreabilidade | — | 100% requisitos críticos mapeados | `RTM.md` | Este documento |
-| RNF-04 / RNF-09 | CI via GitHub Actions | Não funcional | Alta | Pipeline | Pipeline ausente | — | Pipeline em PR; falhas bloqueiam | Workflow, artefatos | Planejado |
-| RNF-05 / RNF-10 | TDD/BDD em ≥ 1 funcionalidade | Prática | Média | A definir | Ausência de prática de engenharia | TG-09 | Funcionalidade desenvolvida com TDD/BDD | Histórico de commits; `src/test/resources/features/`; ver §5.3.1 | Implementado (local; CI pendente) |
+| RNF-04 / RNF-09 | CI via GitHub Actions | Não funcional | Alta | Pipeline | Pipeline ausente | — | Pipeline em PR; falhas bloqueiam | Workflow, artefatos | Implementado: CI verde no GitHub Actions (runs 43084764936, 43084968220) |
+| RNF-05 / RNF-10 | TDD/BDD em ≥ 1 funcionalidade | Prática | Média | A definir | Ausência de prática de engenharia | TG-09 | Funcionalidade desenvolvida com TDD/BDD | Histórico de commits; `src/test/resources/features/`; ver §5.3.1 | Implementado: TDD e BDD executados; CI verde |
 | RNF-01 PRD / RNF-06 | Testes de carga com JMeter | Não funcional | Alta | A definir | Degradação sob carga | TG-11 | Estabilidade sob carga (metas pendentes P5) | Relatório JMeter | Executado (rodada-01 local); critério em revisão |
 | RNF-03-P1 (proposta) | p95 da consulta de disponibilidade ≤ 500 ms, 50 usuários | Não funcional | Alta | reservations | Lentidão na consulta | TG-11 | p95 ≤ 500 ms (`docs/performance/rnf.md` §2) | `perf/reservas.jmx`, `perf/resultados/rodada-01.jtl`, `docs/performance/resultado-01.md` | Medido, 1 rodada: 326 ms; decisão INCONCLUSIVO |
 | RNF-04-P1 (proposta) | p95 da criação de reserva ≤ 500 ms, 50 usuários | Não funcional | Alta | reservations | Lentidão na criação | TG-11 | p95 ≤ 500 ms (`rnf.md` §2) | Mesmas do RNF-03-P1 | Medido, 1 rodada: 335 ms (somente 409); decisão INCONCLUSIVO |
