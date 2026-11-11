@@ -62,7 +62,7 @@ public class ServicoReservas {
         if (recurso.status() != StatusRecurso.DISPONIVEL) {
             throw new ErroAplicacao(409, "Recurso indisponível para reserva");
         }
-        verificarDisponibilidade(recurso.id(), inicio, fim, null);
+        verificarDisponibilidade(recurso.id(), inicio, fim, null, ator.id());
         EstadoReserva inicial = recurso.restrito() ? EstadoReserva.SOLICITADA : EstadoReserva.APROVADA;
         Reserva nova = new Reserva(UUID.randomUUID().toString(), ator, recurso, inicio, fim, inicial);
         armazenamento.inserirReserva(nova, evento(nova.getId(), ator, "SOLICITAR", null, inicial, null));
@@ -82,7 +82,7 @@ public class ServicoReservas {
             throw new ErroAplicacao(409, "Recurso indisponível para reserva");
         }
         validarPeriodo(inicio, fim);
-        verificarDisponibilidade(atual.getRecurso().id(), inicio, fim, atual.getId());
+        verificarDisponibilidade(atual.getRecurso().id(), inicio, fim, atual.getId(), ator.id());
         Reserva nova = new Reserva(atual.getId(), atual.getSolicitante(), atual.getRecurso(),
                 inicio, fim, EstadoReserva.SOLICITADA);
         armazenamento.atualizarReserva(nova,
@@ -140,7 +140,8 @@ public class ServicoReservas {
         }
         exigirAutorizacaoTransicao(ator, atual, destino);
         if (destino == EstadoReserva.APROVADA) {
-            verificarDisponibilidade(atual.getRecurso().id(), atual.getInicio(), atual.getFim(), atual.getId());
+            verificarDisponibilidade(atual.getRecurso().id(), atual.getInicio(), atual.getFim(), atual.getId(),
+                    atual.getSolicitante().id());
         }
         if (destino == EstadoReserva.EM_USO && antesDoInicio(atual)) {
             throw new ErroAplicacao(409, "Uso só pode começar a partir do horário de início");
@@ -266,24 +267,38 @@ public class ServicoReservas {
     }
 
     synchronized boolean temConflito(String recursoId, LocalDateTime inicio, LocalDateTime fim) {
-        return conflita(recursoId, inicio, fim, null);
+        return sobrepoeManutencao(recursoId, inicio, fim) || sobrepoeReserva(recursoId, inicio, fim, null);
+    }
+
+    /** Tentativas recusadas por sobreposição com reserva (conflitos evitados, RF-12). */
+    synchronized List<ConflitoReserva> conflitosRegistrados() {
+        return armazenamento.listarConflitos();
     }
 
     // ---------------------------------------------------------------- internos
 
-    private void verificarDisponibilidade(String recursoId, LocalDateTime inicio, LocalDateTime fim, String idIgnorado) {
-        if (conflita(recursoId, inicio, fim, idIgnorado)) {
+    /**
+     * Recusa com 409 se houver sobreposição com reserva ativa ou manutenção. A sobreposição com reserva
+     * fica registrada como conflito evitado (RF-12); a de manutenção não entra nessa contagem.
+     */
+    private void verificarDisponibilidade(String recursoId, LocalDateTime inicio, LocalDateTime fim,
+                                          String idIgnorado, String solicitanteId) {
+        if (sobrepoeReserva(recursoId, inicio, fim, idIgnorado)) {
+            armazenamento.registrarConflito(new ConflitoReserva(recursoId, solicitanteId, inicio, fim));
+            throw new ErroAplicacao(409, "Conflito de horário para o recurso " + recursoId);
+        }
+        if (sobrepoeManutencao(recursoId, inicio, fim)) {
             throw new ErroAplicacao(409, "Conflito de horário para o recurso " + recursoId);
         }
     }
 
-    private boolean conflita(String recursoId, LocalDateTime inicio, LocalDateTime fim, String idIgnorado) {
-        boolean emManutencao = armazenamento.listarManutencoes().stream()
+    private boolean sobrepoeManutencao(String recursoId, LocalDateTime inicio, LocalDateTime fim) {
+        return armazenamento.listarManutencoes().stream()
                 .filter(m -> m.recursoId().equals(recursoId))
                 .anyMatch(m -> sobrepoe(m.inicio(), m.fim(), inicio, fim));
-        if (emManutencao) {
-            return true;
-        }
+    }
+
+    private boolean sobrepoeReserva(String recursoId, LocalDateTime inicio, LocalDateTime fim, String idIgnorado) {
         return armazenamento.listarReservas().stream()
                 .filter(r -> !r.getId().equals(idIgnorado))
                 .filter(r -> r.getRecurso().id().equals(recursoId))

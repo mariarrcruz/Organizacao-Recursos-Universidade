@@ -354,10 +354,11 @@ Para cada regra crítica abaixo são informados: onde é validada, mecanismo de 
 ### 3.13 Relatórios de utilização (RF-12)
 
 - **Onde validada:** módulo `reports` (leitura agregada).
-- **Mecanismo:** filtros (data, unidade, recurso, status — unidade pendente P8), agregações, autorização sobre o conjunto de dados.
+- **Mecanismo:** `GET /relatorios/utilizacao?inicio=&fim=` (datas ISO, dias inclusivos). Horas por recurso e carga horária por professor contam só APROVADA, EM_USO e CONCLUIDA, recortadas ao período [início 00:00, fim+1 00:00). Conflitos evitados são tentativas recusadas (409) por sobreposição com reserva cujo intervalo cruza o período; recusas por manutenção não entram. Acesso: Responsável e Administrador (401 sem token, 403 para Solicitante). Filtro por unidade continua pendente (P8).
 - **Concorrência:** leitura apenas; consistência dos dados no momento da geração.
-- **Testes:** utilização por recurso, carga horária alocada, reservas por estado, conflitos evitados, histórico de retiradas/devoluções, tempo de resposta (referência ≤ 5s / alvo 2,5s documentado em arquitetura.md §11.1).
-- **Evidência:** relatórios gerados, testes de desempenho de relatório.
+- **Testes implementados (utilização):** contrato de caixa-preta `RelatorioUtilizacaoContrato`, executado contra memória (`RelatorioUtilizacaoMemoriaTest`) e PostgreSQL (`RelatorioUtilizacaoPostgresTest`). A massa é semeada pela API (`POST /recursos`, `POST /reservas`, cancelamento, tentativas recusadas), e a conta esperada fica no comentário de cada teste. Casos: massa completa, período vazio, reserva que cruza a borda, reserva cancelada, recusa fora do período, 401, 403, 200 para Responsável e Administrador, 400 para período inválido.
+- **Testes pendentes:** carga horária por sala e contagem por estado com HTTP; histórico de retiradas/devoluções; tempo de resposta (referência ≤ 5s / alvo 2,5s documentado em arquitetura.md §11.1), medido sobre a aplicação e não sobre o serviço em memória.
+- **Evidência:** commits `7a7db9c` (test red), `fce2758` e `4cc164d` (feat green). Mutações de regra (estado cancelado, recorte pelo período, registro de conflito, controle de perfil) foram detectadas pelos testes.
 
 ### 3.14 Ciclo de vida das reservas — estados e transições
 
@@ -815,6 +816,7 @@ Caminhos relativos à raiz do repositório. Teste de unidade = classe JUnit exis
 
 | Requisito (origem) | Cenário(s) BDD | Feature (caminho) | Teste de unidade (caminho) | Commit(s) | Situação |
 |---|---|---|---|---|---|
+| RF-12 — relatório de utilização (horas, carga por professor, conflitos evitados) | Não há cenário BDD | — | `src/test/java/com/organizacao/recursos/api/RelatorioUtilizacaoContrato.java` (executado em `RelatorioUtilizacaoMemoriaTest` e `RelatorioUtilizacaoPostgresTest`) | `7a7db9c` (red), `fce2758`, `4cc164d` (green) | Implementado para utilização por HTTP; demais relatórios pendentes (PEN-07) |
 | RF-07 / RN-07 — aprovação obrigatória de recurso restrito; só Responsável aprova | Reserva de recurso restrito nasce aguardando aprovação · Responsável aprova recurso restrito e o uso passa a ser possível · Solicitante não consegue aprovar recurso restrito · Administrador não consegue aprovar recurso restrito · Usuário anônimo não consegue aprovar · Aprovação gera registro de auditoria com o aprovador | `src/test/resources/features/aprovacao-bloqueio.feature` | `src/test/java/com/organizacao/recursos/testes/RN07AlcadaAprovacaoTest.java` | `f4f87a1`, `ac22ade` (ciclo TDD); `22193df` (BDD) | Implementado; validado localmente |
 | RF-07 (Q1) — recurso livre entra APROVADA; aprovação só para restrito | Sem cenário no documento BDD (Q1 resolvida sem cenário novo) | — | `src/test/java/com/organizacao/recursos/testes/RecursoLivreAprovacaoTest.java` | `f4f87a1`, `ac22ade`, `20eb9f9` | Coberto só por teste de unidade |
 | RF-07 / RN-04 (Q5) — aprovação revalida manutenção posterior e recusa com 409 | Sem cenário no documento BDD | — | `src/test/java/com/organizacao/recursos/testes/RevalidacaoAprovacaoTest.java` | `592fb3d`, `d796aae`, `6841b28` | Coberto só por teste de unidade |
@@ -1069,6 +1071,7 @@ A ocorrência de qualquer um inviabiliza a aprovação máxima:
 |---|---|---|---|---|---|---|---|---|---|
 | PRD RF-01 / RFC RF-01 | Autenticação e autorização por perfil com JWT | Funcional | Crítica | identity, security | Falha de autorização | TG-06 | Token válido; acessos não autorizados rejeitados | Relatório de segurança, matriz de autorização | Parcial: JWT validado por testes; login real ausente (PEN-01) |
 | PRD RF-06 / RFC RF-07 | Prevenção de dupla reserva concorrente | Funcional | Crítica | reservations, availability | Dupla reserva | TG-07 | No máximo 1 reserva por alocação sob concorrência | Estado final do banco, relatório de concorrência | Implementado e validado (concorrência em PostgreSQL; DEF-001, DEF-002) |
+| PRD RF-12 / RFC RF-12 | Relatório de utilização por recurso, carga por professor e conflitos evitados | Funcional | Média | reports | Relatório incorreto | TG-03 | Horas só de reservas usadas, recortadas ao período; conflitos contados por período | Contrato de caixa-preta `RelatorioUtilizacaoContrato` | Parcial: utilização por HTTP implementada; demais relatórios pendentes (PEN-07) |
 | PRD RF-10 / RFC RF-11 | Auditoria de alterações | Funcional | Alta | audit | Auditoria incompleta | TG-03, TG-01 | Cada mudança de estado gera registro | Tabela AuditEvent, teste de imutabilidade | Parcial: histórico com instante, append-only e validado; recursos sem auditoria |
 | RFC RNF-02 | Integridade sob concorrência | Não funcional | Crítica | reservations | Inconsistência transacional | TG-03, TG-07 | Sem reservas duplicadas; rejeição determinística | Relatório de integração e concorrência | Implementado e validado (mesma evidência de RF-06) |
 | COV-01 / COV-02 / RNF-11 | Cobertura linhas ≥80%, branches ≥70% | Qualidade | Alta | Suíte de testes | Cobertura artificial | Pipeline | JaCoCo dentro das metas | Relatório JaCoCo | Implementado: gate JaCoCo ativo no `verify` |

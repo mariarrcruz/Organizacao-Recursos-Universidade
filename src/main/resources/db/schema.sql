@@ -54,3 +54,12 @@ DROP TRIGGER IF EXISTS evento_append_only ON evento_auditoria;
 CREATE TRIGGER evento_append_only
     BEFORE UPDATE OR DELETE ON evento_auditoria
     FOR EACH ROW EXECUTE FUNCTION auditoria_somente_insercao();
+
+-- Tentativas de reserva recusadas por sobreposição (conflitos evitados, RF-12). Não é auditoria: não altera estado.
+CREATE TABLE IF NOT EXISTS conflito_reserva (
+    id           bigserial    PRIMARY KEY,
+    recurso_id   varchar(64)  NOT NULL,
+    solicitante_id varchar(64) NOT NULL,
+    inicio       timestamptz  NOT NULL,
+    fim          timestamptz  NOT NULL
+);

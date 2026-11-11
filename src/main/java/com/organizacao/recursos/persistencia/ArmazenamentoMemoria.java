@@ -1,5 +1,6 @@
 package com.organizacao.recursos.persistencia;
 
+import com.organizacao.recursos.dominio.ConflitoReserva;
 import com.organizacao.recursos.dominio.ErroAplicacao;
 import com.organizacao.recursos.dominio.EventoAuditoria;
 import com.organizacao.recursos.dominio.Manutencao;
@@ -20,6 +21,7 @@ public final class ArmazenamentoMemoria implements Armazenamento {
     private final List<Reserva> reservas = new ArrayList<>();
     private final List<Manutencao> manutencoes = new ArrayList<>();
     private final List<EventoAuditoria> eventos = new ArrayList<>();
+    private final List<ConflitoReserva> conflitos = new ArrayList<>();
     private final Map<String, Recurso> recursos = new HashMap<>();
 
     @Override
@@ -81,5 +83,15 @@ public final class ArmazenamentoMemoria implements Armazenamento {
     @Override
     public synchronized Optional<Recurso> buscarRecurso(String id) {
         return Optional.ofNullable(recursos.get(id));
+    }
+
+    @Override
+    public synchronized void registrarConflito(ConflitoReserva conflito) {
+        conflitos.add(conflito);
+    }
+
+    @Override
+    public synchronized List<ConflitoReserva> listarConflitos() {
+        return List.copyOf(conflitos);
     }
 }
