@@ -45,3 +45,22 @@ Decisão do usuário: seguir o PRD. Aprovação é exigida só para recurso rest
 - `AutoaprovacaoReservaTest` e `RevalidacaoAprovacaoTest` usam recurso **restrito**, porque o cenário pressupõe reserva aguardando aprovação (`SOLICITADA`).
 
 **Suíte:** `./mvnw -B test` — 276 testes, 0 falhas, `BUILD SUCCESS`.
+
+## Estado de fechamento do primeiro prompt
+
+Levantamento feito no código em `main` (ac22ade) e na suíte (`./mvnw -B test`: 276 testes, 0 falhas).
+
+**Cenários com ciclo red → green completo:**
+- Funcionalidade 2: usuário com perfis SOLICITANTE e RESPONSAVEL não aprova a própria reserva (`c5b34a7` / `18e4e51`).
+- Funcionalidade 3 (manutenção) e Q5: aprovação revalida manutenção e recusa com 409 (`592fb3d` / `d796aae`).
+- Funcionalidade 1, Q1 (decisão do PRD): recurso livre entra APROVADA (`f4f87a1` / `ac22ade`).
+
+**Cenários sem vermelho possível com o código atual** (pela leitura do código, não por teste novo): a maioria de F1, F3 (status MANUTENCAO, intersecção, outro recurso, alteração, tabela de fronteiras B1–B7), F4 (7 transições permitidas, 42 proibidas, terminais, cancelamento e exclusão em EM_USO, justificativa, auditoria) e Q9/Q10. Escrever esses testes agora produziria testes que já passam; isso quebra a regra de nunca pular o vermelho, então não foram escritos. Ficam registrados como "sem vermelho possível".
+
+**Injeção de `Clock` nas regras de manutenção:** nenhuma regra de manutenção lê o tempo hoje (`criarManutencao` e `conflita` são puramente sobre intervalos). Não há ponto de injeção a fazer sem criar comportamento sem teste. A única leitura de tempo em `ServicoReservas` (cancelamento e auditoria) já usa `Clock` injetado.
+
+**Achado fora do escopo:** `ServicoMovimentacoes` usa `LocalDateTime.now()` diretamente (linhas 33 e 46), contrariando a regra de não esconder o relógio. Não é regra de manutenção; fica registrado para tratamento separado.
+
+**Refactor:** não aplicável em nenhum ciclo; sem mudança de comportamento não havia o que limpar.
+
+**Questões em aberto que dependem de decisão:** Q2 (escopo da autoaprovação: implementado só para APROVADA), Q3, Q4, Q6, Q7, Q8 e Q10, sem decisão registrada.
