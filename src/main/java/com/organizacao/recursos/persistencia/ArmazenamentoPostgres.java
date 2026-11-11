@@ -1,5 +1,6 @@
 package com.organizacao.recursos.persistencia;
 
+import com.organizacao.recursos.dominio.ConflitoReserva;
 import com.organizacao.recursos.dominio.ErroAplicacao;
 import com.organizacao.recursos.dominio.EstadoReserva;
 import com.organizacao.recursos.dominio.EventoAuditoria;
@@ -67,7 +68,7 @@ public final class ArmazenamentoPostgres implements Armazenamento {
     /** Esvazia as tabelas (usado entre cenários de teste). */
     public void limpar() {
         try (Connection c = conectar(); Statement st = c.createStatement()) {
-            st.execute("TRUNCATE reserva, manutencao, evento_auditoria, recurso");
+            st.execute("TRUNCATE reserva, manutencao, evento_auditoria, conflito_reserva, recurso");
         } catch (SQLException e) {
             throw new IllegalStateException("Falha ao limpar tabelas", e);
         }
@@ -136,28 +137,95 @@ public final class ArmazenamentoPostgres implements Armazenamento {
     @Override
     public void inserirReserva(Reserva reserva, EventoAuditoria evento) {
         String recursoId = reserva.getRecurso().id();
-        transacao(recursoId, c -> {
-            garantirRecurso(c, reserva.getRecurso());
-            travarRecurso(c, recursoId);
-            verificarManutencao(c, recursoId, reserva.getInicio(), reserva.getFim());
-            inserirLinhaReserva(c, reserva);
-            if (evento != null) {
-                inserirEvento(c, evento);
+        boolean[] corrida = {false};
+        try {
+            transacao(recursoId, c -> {
+                garantirRecurso(c, reserva.getRecurso());
+                travarRecurso(c, recursoId);
+                verificarManutencao(c, recursoId, reserva.getInicio(), reserva.getFim());
+                try {
+                    inserirLinhaReserva(c, reserva);
+                } catch (SQLException e) {
+                    corrida[0] = RepositorioReservasPostgres.SQLSTATE_EXCLUSAO.equals(e.getSQLState());
+                    throw e;
+                }
+                if (evento != null) {
+                    inserirEvento(c, evento);
+                }
+            });
+        } catch (ErroAplicacao e) {
+            if (corrida[0]) {
+                registrarConflitoAposRecusa(reserva);
             }
-        });
+            throw e;
+        }
+    }
+
+    /**
+     * Recusa pela restrição do banco em corrida (SQLSTATE 23P01). A transação já foi desfeita; o conflito
+     * é gravado em conexão própria, para que a contagem de conflitos evitados não desapareça com o rollback.
+     */
+    private void registrarConflitoAposRecusa(Reserva reserva) {
+        registrarConflito(new ConflitoReserva(reserva.getRecurso().id(), reserva.getSolicitante().id(),
+                reserva.getInicio(), reserva.getFim()));
     }
 
     @Override
     public void atualizarReserva(Reserva reserva, EventoAuditoria evento, boolean revalidarManutencao) {
         String recursoId = reserva.getRecurso().id();
-        transacao(recursoId, c -> {
-            travarRecurso(c, recursoId);
-            if (revalidarManutencao && ativa(reserva.getEstado())) {
-                verificarManutencao(c, recursoId, reserva.getInicio(), reserva.getFim());
+        boolean[] corrida = {false};
+        try {
+            transacao(recursoId, c -> {
+                travarRecurso(c, recursoId);
+                if (revalidarManutencao && ativa(reserva.getEstado())) {
+                    verificarManutencao(c, recursoId, reserva.getInicio(), reserva.getFim());
+                }
+                try {
+                    atualizarLinhaReserva(c, reserva);
+                } catch (SQLException e) {
+                    corrida[0] = RepositorioReservasPostgres.SQLSTATE_EXCLUSAO.equals(e.getSQLState());
+                    throw e;
+                }
+                inserirEvento(c, evento);
+            });
+        } catch (ErroAplicacao e) {
+            if (corrida[0]) {
+                registrarConflitoAposRecusa(reserva);
             }
-            atualizarLinhaReserva(c, reserva);
-            inserirEvento(c, evento);
-        });
+            throw e;
+        }
+    }
+
+    @Override
+    public void registrarConflito(ConflitoReserva conflito) {
+        try (Connection c = conectar();
+             PreparedStatement ps = c.prepareStatement(
+                     "INSERT INTO conflito_reserva (recurso_id, solicitante_id, inicio, fim) VALUES (?, ?, ?, ?)")) {
+            ps.setString(1, conflito.recursoId());
+            ps.setString(2, conflito.solicitanteId());
+            ps.setObject(3, conflito.inicio().atOffset(ZoneOffset.UTC));
+            ps.setObject(4, conflito.fim().atOffset(ZoneOffset.UTC));
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Falha ao registrar conflito", e);
+        }
+    }
+
+    @Override
+    public List<ConflitoReserva> listarConflitos() {
+        String sql = "SELECT recurso_id, solicitante_id, inicio, fim FROM conflito_reserva ORDER BY id";
+        try (Connection c = conectar();
+             PreparedStatement ps = c.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            List<ConflitoReserva> lista = new ArrayList<>();
+            while (rs.next()) {
+                lista.add(new ConflitoReserva(rs.getString("recurso_id"), rs.getString("solicitante_id"),
+                        instante(rs, "inicio"), instante(rs, "fim")));
+            }
+            return lista;
+        } catch (SQLException e) {
+            throw new IllegalStateException("Falha ao listar conflitos", e);
+        }
     }
 
     @Override

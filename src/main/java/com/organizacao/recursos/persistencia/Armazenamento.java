@@ -1,5 +1,6 @@
 package com.organizacao.recursos.persistencia;
 
+import com.organizacao.recursos.dominio.ConflitoReserva;
 import com.organizacao.recursos.dominio.EventoAuditoria;
 import com.organizacao.recursos.dominio.Manutencao;
 import com.organizacao.recursos.dominio.Recurso;
@@ -45,4 +46,9 @@ public interface Armazenamento {
     void gravarRecurso(Recurso recurso);
 
     Optional<Recurso> buscarRecurso(String id);
+
+    /** Registra uma tentativa de reserva recusada por sobreposição (conflito evitado). */
+    void registrarConflito(ConflitoReserva conflito);
+
+    List<ConflitoReserva> listarConflitos();
 }
