@@ -237,16 +237,6 @@ public class ServicoReservas {
         return armazenamento.listarEventos().stream().filter(e -> e.reservaId().equals(reservaId)).toList();
     }
 
-    /** Auditoria é append-only: alteração é sempre recusada (RN-09.8). */
-    public void alterarEvento(Usuario ator, EventoAuditoria evento, String novoValor) {
-        throw new ErroAplicacao(405, "Auditoria é append-only: alteração proibida");
-    }
-
-    /** Auditoria é append-only: exclusão é sempre recusada (RN-09.9). */
-    public void excluirEvento(Usuario ator, EventoAuditoria evento) {
-        throw new ErroAplicacao(405, "Auditoria é append-only: exclusão proibida");
-    }
-
     // ---------------------------------------------------------------- acesso interno aos demais serviços
 
     /** Insere uma reserva já existente no armazenamento (usado para preparar cenários de teste). */
