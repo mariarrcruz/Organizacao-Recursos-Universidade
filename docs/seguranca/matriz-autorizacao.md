@@ -38,7 +38,7 @@ Papéis usados nas colunas: **Anônimo** (sem header), **Solicitante** (dono da 
 | 1 | `POST /dev/tokens` | 404 em produção ⚠️ | — | — | — | Laboratório apenas (`app.dev.tokens=true`). Com o flag ligado, qualquer anônimo obtém token de **qualquer perfil**, inclusive `ADMINISTRADOR` (PEN-01a). Padrão do projeto: desligado. Ver seção 5. |
 | 2 | `POST /recursos` | 401 ✅ | 403 ✅ | 403 ✅ | 201 ✅ | Conforme RF-15.A.1. |
 | 3 | `POST /manutencoes` (bloqueio) | 401 ✅ | 403 ✅ | 403 ✅ | 201 ✅ | Conforme RF-15.A.7, A.8 e R.9. |
-| 4 | `POST /reservas` | 401 ✅ | 201 ✅ | 201 ❓ | 201 ❓ | Solicitante cria a própria reserva (RF-15.S.1). Responsável: escopo a esclarecer (RF-15.R.7). Administrador: sem regra escrita. O código aceita qualquer autenticado, sem checagem de perfil (seção 4). |
+| 4 | `POST /reservas` | 401 ✅ | 201 ✅ | 201 ✅ | 201 ❓ | Solicitante cria a própria reserva (RF-15.S.1). Responsável: permitido pela decisão AMB-03 do product owner (plano de testes §7.2), embora a persona não liste essa ação. Administrador: sem regra escrita (seção 4). |
 | 5 | `GET /reservas?recursoId=` | 401 ✅ | 403 ✅ | 403 ✅ | 200 ✅ | Lista reservas com o solicitante, por isso é restrita ao Administrador. A consulta de disponibilidade do Solicitante é a linha 5b. |
 | 5b | `GET /disponibilidade?recursoId=&inicio=&fim=` | 401 ✅ | 200 ✅ | 200 ✅ | 200 ✅ | Resposta só com `disponivel` true ou false, sem revelar quem reservou. Especificação: "O Solicitante consulta a disponibilidade" (corrigido, commit `4ffaec0`, antes ❌ D1). |
 | 6 | `GET /reservas/{id}` | 401 ✅ | 200 se dono; 403 se terceiro ✅ | 200 ❓ | 200 ✅ | A especificação não diz quem lê reservas de terceiros. O Responsável lê qualquer reserva; o vínculo "sob sua responsabilidade" (RF-15.R.2) não está definido na especificação (lacuna, ver seção 4). |
@@ -86,7 +86,7 @@ Papéis usados nas colunas: **Anônimo** (sem header), **Solicitante** (dono da 
 - **Vínculo do Responsável com recursos.** A especificação diz só "valida a alocação de docentes" e "somente responsáveis aprovam recursos restritos". O vínculo não existe, então qualquer Responsável aprova qualquer reserva restrita (PEN-01c).
 - **Quem rejeita reservas.** Não definido. O código dá a rejeição ao Responsável.
 - **Quem vê histórico e relatórios.** Não definido. O código dá os dois ao Responsável e ao Administrador, com decisão registrada em ADR-005 e RF-12.
-- **Quem cria reservas.** A especificação diz que o Solicitante "cria, altera ou cancela suas reservas", sem dizer o que os outros perfis podem. O código deixa qualquer autenticado criar (linha 4).
+- **Quem cria reservas.** A especificação diz que o Solicitante "cria, altera ou cancela suas reservas". A decisão AMB-03 (plano de testes, §7.2, confirmada pelo product owner) permite também ao Responsável criar a própria reserva, e o código segue essa decisão. A persona do Responsável não lista essa ação; essa é a única divergência entre persona e decisão registrada, e foi resolvida a favor da decisão. Para o Administrador não há regra escrita: o código permite (201), e a decisão continua em aberto.
 - **Autenticação por JWT.** A especificação exige "autenticação e autorização por perfil", mas não cita JWT. A rota `POST /dev/tokens` continua desligada por padrão (linha 1). Com o flag ligado, qualquer anônimo obtém perfil à escolha (PEN-01a), e isso é risco operacional, não divergência da especificação.
 
 ## 5. Rotas sem regra de segurança
