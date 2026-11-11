@@ -27,7 +27,7 @@ class RN09RastreabilidadeTest {
         // Arrange
         Reserva criada = servico.solicitar(alice, sala, t("10:00"), t("11:00"));
         // Act
-        List<EventoAuditoria> eventos = servico.eventosDe(alice, criada.getId());
+        List<EventoAuditoria> eventos = servico.eventosDe(resp, criada.getId());
         // Assert
         assertEquals(1, eventos.size());
         assertEquals(EstadoReserva.SOLICITADA, eventos.get(0).estadoNovo());
@@ -41,7 +41,7 @@ class RN09RastreabilidadeTest {
         servico.registrarExistente(solicitada);
         servico.aprovar(resp, solicitada);
         // Act
-        List<EventoAuditoria> eventos = servico.eventosDe(alice, "R1");
+        List<EventoAuditoria> eventos = servico.eventosDe(resp, "R1");
         // Assert
         assertEquals(EstadoReserva.APROVADA, eventos.get(eventos.size() - 1).estadoNovo());
     }
@@ -56,7 +56,7 @@ class RN09RastreabilidadeTest {
         servico.registrarExistente(aprovada);
         servico.iniciarUso(alice, aprovada);
         // Act
-        List<EventoAuditoria> eventos = servico.eventosDe(alice, "R1");
+        List<EventoAuditoria> eventos = servico.eventosDe(resp, "R1");
         // Assert
         assertEquals(EstadoReserva.EM_USO, eventos.get(eventos.size() - 1).estadoNovo());
     }
@@ -69,7 +69,7 @@ class RN09RastreabilidadeTest {
         servico.registrarExistente(emUso);
         servico.concluir(alice, emUso);
         // Act
-        List<EventoAuditoria> eventos = servico.eventosDe(alice, "R1");
+        List<EventoAuditoria> eventos = servico.eventosDe(resp, "R1");
         // Assert
         assertEquals(EstadoReserva.CONCLUIDA, eventos.get(eventos.size() - 1).estadoNovo());
     }
@@ -82,7 +82,7 @@ class RN09RastreabilidadeTest {
         servico.registrarExistente(solicitada);
         servico.rejeitar(resp, solicitada, "Conflito com evento institucional");
         // Act
-        List<EventoAuditoria> eventos = servico.eventosDe(alice, "R1");
+        List<EventoAuditoria> eventos = servico.eventosDe(resp, "R1");
         // Assert
         EventoAuditoria ultimo = eventos.get(eventos.size() - 1);
         assertEquals(EstadoReserva.REJEITADA, ultimo.estadoNovo());
@@ -97,7 +97,7 @@ class RN09RastreabilidadeTest {
         servico.registrarExistente(aprovada);
         servico.cancelar(alice, aprovada, "Imprevisto pessoal");
         // Act
-        List<EventoAuditoria> eventos = servico.eventosDe(alice, "R1");
+        List<EventoAuditoria> eventos = servico.eventosDe(resp, "R1");
         // Assert
         EventoAuditoria ultimo = eventos.get(eventos.size() - 1);
         assertEquals(EstadoReserva.CANCELADA, ultimo.estadoNovo());
@@ -112,7 +112,7 @@ class RN09RastreabilidadeTest {
         servico.registrarExistente(solicitada);
         servico.aprovar(resp, solicitada);
         // Act
-        EventoAuditoria evento = servico.eventosDe(alice, "R1").get(0);
+        EventoAuditoria evento = servico.eventosDe(resp, "R1").get(0);
         // Assert
         assertNotNull(evento.atorId());
         assertNotNull(evento.instante());
@@ -126,7 +126,7 @@ class RN09RastreabilidadeTest {
     void rn09_8_editarEventoEhImpossivel() {
         // Arrange
         Reserva solicitada = servico.solicitar(alice, sala, t("10:00"), t("11:00"));
-        EventoAuditoria evento = servico.eventosDe(alice, solicitada.getId()).get(0);
+        EventoAuditoria evento = servico.eventosDe(resp, solicitada.getId()).get(0);
         // Act & Assert
         assertRejeitado(() -> servico.alterarEvento(admin, evento, "valor adulterado"));
     }
@@ -136,7 +136,7 @@ class RN09RastreabilidadeTest {
     void rn09_9_excluirEventoEhImpossivel() {
         // Arrange
         Reserva solicitada = servico.solicitar(alice, sala, t("10:00"), t("11:00"));
-        EventoAuditoria evento = servico.eventosDe(alice, solicitada.getId()).get(0);
+        EventoAuditoria evento = servico.eventosDe(resp, solicitada.getId()).get(0);
         // Act & Assert
         assertRejeitado(() -> servico.excluirEvento(admin, evento));
     }
@@ -147,10 +147,55 @@ class RN09RastreabilidadeTest {
         // Arrange
         Reserva solicitada = reserva("R1", alice, sala, "10:00", "11:00", EstadoReserva.SOLICITADA);
         servico.registrarExistente(solicitada);
-        int antes = servico.eventosDe(alice, "R1").size();
+        int antes = servico.eventosDe(resp, "R1").size();
         // Act
         assertRejeitado(() -> servico.transicionar(alice, solicitada, EstadoReserva.CONCLUIDA, null));
         // Assert
-        assertEquals(antes, servico.eventosDe(alice, "R1").size());
+        assertEquals(antes, servico.eventosDe(resp, "R1").size());
+    }
+
+    @Test
+    @DisplayName("RN-09.11 — Solicitante dono da reserva não consulta o histórico: 403")
+    void rn09_11_solicitanteNaoConsultaHistorico() {
+        // Arrange
+        Reserva propria = reserva("R1", alice, sala, "10:00", "11:00", EstadoReserva.SOLICITADA);
+        servico.registrarExistente(propria);
+        // Act & Assert
+        assertErro(403, () -> servico.eventosDe(alice, "R1"));
+    }
+
+    @Test
+    @DisplayName("RN-09.12 — Responsável e Administrador consultam o histórico da reserva")
+    void rn09_12_responsavelEAdministradorConsultamHistorico() {
+        // Arrange
+        Reserva solicitada = servico.solicitar(alice, sala, t("10:00"), t("11:00"));
+        // Act & Assert
+        assertEquals(1, servico.eventosDe(resp, solicitada.getId()).size());
+        assertEquals(1, servico.eventosDe(admin, solicitada.getId()).size());
+    }
+
+    @Test
+    @DisplayName("RN-09.13 — Instante do registro vem do Clock injetado")
+    void rn09_13_instanteVemDoRelogio() {
+        // Arrange — relógio fixo às 09:00
+        Reserva solicitada = servico.solicitar(alice, sala, t("10:00"), t("11:00"));
+        // Act
+        EventoAuditoria evento = servico.eventosDe(resp, solicitada.getId()).get(0);
+        // Assert
+        assertEquals(t("09:00"), evento.instante());
+    }
+
+    @Test
+    @DisplayName("RN-09.14 — Reserva já iniciada não pode ser apagada e a tentativa não gera registro")
+    void rn09_14_reservaIniciadaNaoPodeSerApagada() {
+        // Arrange — relógio às 10:30; a reserva começou às 10:00 e está APROVADA
+        ServicoReservas tarde = new ServicoReservas(
+                java.time.Clock.fixed(t("10:30").toInstant(java.time.ZoneOffset.UTC), java.time.ZoneOffset.UTC));
+        Reserva iniciada = reserva("R1", alice, sala, "10:00", "11:00", EstadoReserva.APROVADA);
+        tarde.registrarExistente(iniciada);
+        int antes = tarde.eventosDe(resp, "R1").size();
+        // Act & Assert
+        assertErro(409, () -> tarde.excluir(alice, iniciada));
+        assertEquals(antes, tarde.eventosDe(resp, "R1").size());
     }
 }

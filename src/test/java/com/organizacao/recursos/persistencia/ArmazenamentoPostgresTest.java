@@ -20,6 +20,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -93,5 +94,45 @@ class ArmazenamentoPostgresTest {
             assertThrows(SQLException.class, () -> st.executeUpdate("DELETE FROM evento_auditoria"));
         }
         assertEquals("SOLICITAR", armazenamento.listarEventos().get(0).acao());
+    }
+
+    @Test
+    @DisplayName("RN-09: mudança de estado e evento de auditoria são gravados na mesma transação")
+    void mudancaDeEstadoEEventoSaoGravadosJuntos() {
+        Reserva solicitada = new Reserva("R-4", alice, sala, inicio, fim, EstadoReserva.SOLICITADA);
+        armazenamento.inserirReserva(solicitada, evento("R-4", "SOLICITAR", null, EstadoReserva.SOLICITADA, null));
+        Reserva aprovada = new Reserva("R-4", alice, sala, inicio, fim, EstadoReserva.APROVADA);
+
+        armazenamento.atualizarReserva(aprovada,
+                evento("R-4", "TRANSICIONAR", EstadoReserva.SOLICITADA, EstadoReserva.APROVADA, null), false);
+
+        assertEquals(EstadoReserva.APROVADA, armazenamento.buscarReserva("R-4").orElseThrow().getEstado());
+        assertEquals(2, armazenamento.listarEventos().size());
+        assertEquals(EstadoReserva.APROVADA, armazenamento.listarEventos().get(1).estadoNovo());
+    }
+
+    @Test
+    @DisplayName("RN-09: se o evento falha, a mudança de estado é desfeita e não sobra auditoria órfã")
+    void falhaNoEventoDesfazMudancaDeEstadoSemAuditoriaOrfa() {
+        Reserva solicitada = new Reserva("R-5", alice, sala, inicio, fim, EstadoReserva.SOLICITADA);
+        armazenamento.inserirReserva(solicitada, evento("R-5", "SOLICITAR", null, EstadoReserva.SOLICITADA, null));
+        Reserva aprovada = new Reserva("R-5", alice, sala, inicio, fim, EstadoReserva.APROVADA);
+        // Justificativa acima de varchar(500): o INSERT do evento falha depois do UPDATE da reserva.
+        String justificativaInvalida = "x".repeat(501);
+
+        assertThrows(IllegalStateException.class, () -> armazenamento.atualizarReserva(aprovada,
+                evento("R-5", "TRANSICIONAR", EstadoReserva.SOLICITADA, EstadoReserva.APROVADA, justificativaInvalida),
+                false));
+
+        assertEquals(EstadoReserva.SOLICITADA, armazenamento.buscarReserva("R-5").orElseThrow().getEstado());
+        List<EventoAuditoria> eventos = armazenamento.listarEventos();
+        assertEquals(1, eventos.size());
+        assertEquals("SOLICITAR", eventos.get(0).acao());
+    }
+
+    private static EventoAuditoria evento(String reservaId, String acao, EstadoReserva anterior,
+                                          EstadoReserva novo, String justificativa) {
+        return new EventoAuditoria(reservaId, "alice", LocalDateTime.of(2026, 11, 20, 9, 0), acao, anterior, novo,
+                justificativa);
     }
 }

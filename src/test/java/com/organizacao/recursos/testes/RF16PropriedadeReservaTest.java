@@ -86,12 +86,12 @@ class RF16PropriedadeReservaTest {
     }
 
     @Test
-    @DisplayName("RF-16.7 — Alice consulta auditoria da própria reserva: permitido (propriedade inclui auditoria)")
-    void rf16_7_proprietarioConsultaAuditoriaDaPropriaReserva() {
+    @DisplayName("RF-16.7 — Alice (Solicitante) consulta auditoria da própria reserva: 403 (histórico só para Responsável e Administrador)")
+    void rf16_7_proprietarioNaoConsultaAuditoriaDaPropriaReserva() {
         // Arrange
         Reserva propria = reserva("R-ALICE", alice, sala, "10:00", "11:00", EstadoReserva.SOLICITADA);
         servico.registrarExistente(propria);
         // Act & Assert
-        assertDoesNotThrow(() -> servico.eventosDe(alice, "R-ALICE"));
+        assertErro(403, () -> servico.eventosDe(alice, "R-ALICE"));
     }
 }
