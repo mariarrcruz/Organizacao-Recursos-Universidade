@@ -74,6 +74,9 @@ public class ServicoReservas {
         if (atual.getEstado() != EstadoReserva.SOLICITADA) {
             throw new ErroAplicacao(409, "Reserva em " + atual.getEstado() + " não pode ser alterada");
         }
+        if (atual.getRecurso().status() != StatusRecurso.DISPONIVEL) {
+            throw new ErroAplicacao(409, "Recurso indisponível para reserva");
+        }
         validarPeriodo(inicio, fim);
         verificarDisponibilidade(atual.getRecurso().id(), inicio, fim, atual.getId());
         Reserva nova = new Reserva(atual.getId(), atual.getSolicitante(), atual.getRecurso(),
