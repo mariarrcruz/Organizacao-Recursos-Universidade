@@ -338,6 +338,7 @@ Para cada regra crítica abaixo são informados: onde é validada, mecanismo de 
 - **Mecanismo:** append-only na aplicação (apenas inclusão); evento gravado na mesma transação da mudança de estado; campos: identificador do evento, usuário, data/hora UTC, entidade e identificador afetado, ação, estado anterior e posterior, resultado, justificativa, ID de correlação (arquitetura.md §9.1).
 - **Concorrência:** persistência transacional garante que não há estado sem auditoria correspondente.
 - **Testes:** cada mudança de estado gera evento; tentativa de editar/excluir evento de auditoria não oferecida pela aplicação; consulta ao histórico.
+- **Acesso ao histórico:** somente Responsável e Administrador (RN-09, ADR-005). Solicitante recebe 403, inclusive o dono da reserva (`RN09RastreabilidadeTest.rn09_11`, `RF16PropriedadeReservaTest.rf16_7`, `ReservasAuditoriaControllerTest`). Cada registro expõe o `instante` (PEN-09).
 - **Evidência:** tabela de eventos de auditoria, testes de imutabilidade, consulta histórica.
 
 ### 3.12 Notificações simuladas (RF-11, RNF-16, AD-06)

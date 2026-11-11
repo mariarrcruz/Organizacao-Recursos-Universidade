@@ -283,7 +283,7 @@
 | RF-16.4 | Alice | Criada por Alice (EM_USO) | DELETE | ❌ Rejeitado (RN-08) | Proibido em execução |
 | RF-16.5 | Alice | Criada por Alice | Mudar para estado CANCELADA | ✅ Permitido | Transição por proprietário |
 | RF-16.6 | Responsável | Reserva de Alice | PATCH (alterar aprovação) | ✅ Permitido (não proprietário) | Permissão por perfil |
-| RF-16.7 | Alice | Reserva de Alice | Ver auditoria | ✅ Permitido | Propriedade inclui auditoria |
+| RF-16.7 | Alice | Reserva de Alice | Ver auditoria | ❌ Negado (403) | Histórico só para Responsável e Administrador (RN-09; ADR-005) |
 
 ---
 
@@ -429,7 +429,7 @@
 
 | ID | Lacuna | Impacto | Recomendação |
 |----|--------|--------|--------------|
-| GAP-01 | Permissão de READ em auditoria — quem pode consultar histórico? | Médio | Definir: Solicitante vê seu histórico? Responsável vê sob sua responsabilidade? Administrador vê tudo? |
+| GAP-01 | Permissão de READ em auditoria — quem pode consultar histórico? | Médio | **Resolvido:** Solicitante (inclusive dono) recebe 403; Responsável e Administrador consultam (RN-09.11, RN-09.12, RF-16.7, teste HTTP `ReservasAuditoriaControllerTest`) |
 | GAP-02 | Conflito de múltiplos recursos em uma reserva — qual prioridade se um estiver indisponível? (falha atômica ou parcial?) | Alto | Definir: Uma reserva envolve [Sala, Professor, 3 Materiais]; se Sala indisponível, tudo rejeitado? |
 | GAP-03 | Notificações simuladas (RF-11, AD-06) — quem recebe? Apenas ator? Todos interessados? | Médio | Definir: Notificar Solicitante após aprovação? Notificar Responsável quando material danificado? |
 | GAP-04 | Período de manutenção — pode ser criado sobre reserva existente? | Médio | Definir: Bloqueia retroativamente ou apenas futuras? |
@@ -467,7 +467,7 @@
 | RN-06 (Estados Alternativos) | 8 | 1 (AMB-07 quem registra NÃO_COMPARECEU) | 1 (GAP-08 material preso) | ⚠️ Parcial |
 | RN-07 (Alçada de Aprovação) | 6 | 1 (AMB-02 Administrador bypass?) | 0 | ⚠️ Parcial |
 | RN-08 (Imutabilidade EM_USO) | 6 | 1 (AMB-01 DELETE em outros estados) | 0 | ⚠️ Parcial |
-| RN-09 (Auditoria) | 10 | 0 | 1 (GAP-01 READ de auditoria) | ⚠️ Parcial |
+| RN-09 (Auditoria) | 14 | 0 | 0 (GAP-01 resolvido) | ✅ Coberto |
 | RF-01 (Autenticação JWT) | 12 | 0 | 2 (VAL-04 timezone, GAP-07 renovações) | ✅ Completo |
 | RF-15 (Acesso por Perfil) | 26 (por perfil) | 3 (AMB-03, AMB-06, AMB-07) | 1 (GAP-01 READ audit) | ⚠️ Parcial |
 | RF-16 (Propriedade) | 7 | 0 | 0 | ✅ Completo |

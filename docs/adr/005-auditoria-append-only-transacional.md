@@ -101,8 +101,8 @@ public void approveReservation(UUID reservationId, UUID approverId) {
 - Teste: rollback verifica ambos reverstos
 
 ### Consultas de Auditoria
-- Endpoint `GET /audit?entityId=<id>` retorna histórico
-- Apenas Admin + Responsável podem acessar (autorização)
+- Endpoint implementado: `GET /reservas/{id}/auditoria` retorna histórico (cada registro com `instante`)
+- Apenas Responsável + Administrador podem acessar; o Solicitante, inclusive o dono, recebe 403
 - Resultado: lista ordenada por `event_date DESC`
 
 ### Performance
