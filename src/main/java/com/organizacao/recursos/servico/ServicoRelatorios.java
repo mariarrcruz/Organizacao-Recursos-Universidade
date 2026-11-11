@@ -6,6 +6,7 @@ import com.organizacao.recursos.dominio.*;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.EnumSet;
@@ -143,6 +144,7 @@ public class ServicoRelatorios {
         }
         LocalDateTime a = r.getInicio().isAfter(ini) ? r.getInicio() : ini;
         LocalDateTime b = r.getFim().isBefore(fimExcl) ? r.getFim() : fimExcl;
-        return b.isAfter(a) ? Duration.between(a, b) : Duration.ZERO;
+        // Instantes em UTC, o mesmo referencial que o armazenamento usa para gravar os horários.
+        return b.isAfter(a) ? Duration.between(a.toInstant(ZoneOffset.UTC), b.toInstant(ZoneOffset.UTC)) : Duration.ZERO;
     }
 }
