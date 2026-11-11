@@ -142,6 +142,9 @@ public class ServicoReservas {
         if (destino == EstadoReserva.EM_USO && LocalDateTime.now(relogio).isBefore(atual.getInicio())) {
             throw new ErroAplicacao(409, "Uso só pode começar a partir do horário de início");
         }
+        if (destino == EstadoReserva.NAO_COMPARECEU && LocalDateTime.now(relogio).isBefore(atual.getInicio())) {
+            throw new ErroAplicacao(409, "Não comparecimento só pode ser registrado após o início");
+        }
         if (destino == EstadoReserva.CANCELADA && atual.getEstado() == EstadoReserva.APROVADA
                 && !LocalDateTime.now(relogio).isBefore(atual.getInicio())) {
             throw new ErroAplicacao(409, "Cancelamento só é permitido antes do início");
