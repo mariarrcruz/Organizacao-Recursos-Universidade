@@ -16,6 +16,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <wiremock.version>3.9.1</wiremock.version>
     <jackson.version>2.17.2</jackson.version>
+    <spring.version>6.2.1</spring.version>
     <cucumber.version>7.20.1</cucumber.version>
     <junit-platform.version>1.12.2</junit-platform.version>
     <!-- Metas do gate JaCoCo (fase verify). Sobrescrevíveis por -D para validar a falha. -->
@@ -45,6 +46,25 @@
       <groupId>org.wiremock</groupId>
       <artifactId>wiremock-standalone</artifactId>
       <version>${wiremock.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- Spring MVC (camada HTTP, controladores em com.organizacao.recursos.api). Sem Spring Boot por ora. -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-webmvc</artifactId>
+      <version>${spring.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
+      <version>6.0.0</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- MockMvc standalone para as features (chamadas HTTP sem servidor). -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-test</artifactId>
+      <version>${spring.version}</version>
       <scope>test</scope>
     </dependency>
     <!-- Cucumber-JVM (especificação executável, docs/testes/bdd-aprovacao-bloqueio.md). Escopo de teste. -->

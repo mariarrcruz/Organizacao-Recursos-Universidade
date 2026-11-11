@@ -218,6 +218,22 @@ public class ServicoReservas {
         return auditoria.stream().filter(e -> e.reservaId().equals(reservaId)).toList();
     }
 
+    /** Consulta uma reserva: dono, Responsável ou Administrador (RF-16). */
+    public synchronized Reserva consultar(Usuario ator, String reservaId) {
+        exigirAutenticado(ator);
+        Reserva r = buscarObrigatoria(reservaId);
+        if (!(ehDono(ator, r) || tem(ator, Perfil.RESPONSAVEL) || tem(ator, Perfil.ADMINISTRADOR))) {
+            throw new ErroAplicacao(403, "Sem permissão para consultar esta reserva");
+        }
+        return r;
+    }
+
+    /** Lista as reservas de um recurso; restrito a Administrador. */
+    public synchronized List<Reserva> listarDoRecurso(Usuario ator, String recursoId) {
+        exigirPerfil(ator, Perfil.ADMINISTRADOR);
+        return reservasDoRecurso(recursoId);
+    }
+
     /** Auditoria é append-only: alteração é sempre recusada (RN-09.8). */
     public void alterarEvento(Usuario ator, EventoAuditoria evento, String novoValor) {
         throw new ErroAplicacao(405, "Auditoria é append-only: alteração proibida");
