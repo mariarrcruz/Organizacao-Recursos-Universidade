@@ -1,0 +1,10 @@
+# PostgreSQL local para executar a aplicação (ver docs/execucao-local.md).
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: organizacao
+      POSTGRES_USER: organizacao
+      POSTGRES_PASSWORD: organizacao
+    ports:
+      - "5432:5432"
