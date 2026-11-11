@@ -80,6 +80,7 @@ Use o valor de `token` como `Authorization: Bearer <token>`. **Fora do laborató
 | `POST /manutencoes` | Administrador | Bloqueia um recurso em um período de manutenção |
 | `POST /reservas` | Autenticado | Solicita reserva. Recurso restrito nasce `SOLICITADA`; livre nasce `APROVADA` |
 | `GET /reservas?recursoId=` | Administrador | Lista as reservas de um recurso |
+| `GET /disponibilidade?recursoId=&inicio=&fim=` | Autenticado | Diz se o recurso está livre no intervalo (`disponivel`: true ou false). Não revela quem reservou |
 | `GET /reservas/{id}` | Dono, Responsável, Administrador | Consulta uma reserva |
 | `PUT /reservas/{id}` | Dono | Altera o período (somente em `SOLICITADA`) |
 | `DELETE /reservas/{id}` | Dono | Exclui (somente em `SOLICITADA`; reserva iniciada não pode ser apagada) |
