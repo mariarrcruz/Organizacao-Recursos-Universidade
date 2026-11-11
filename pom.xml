@@ -16,6 +16,8 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <wiremock.version>3.9.1</wiremock.version>
     <jackson.version>2.17.2</jackson.version>
+    <cucumber.version>7.20.1</cucumber.version>
+    <junit-platform.version>1.12.2</junit-platform.version>
     <!-- Metas do gate JaCoCo (fase verify). Sobrescrevíveis por -D para validar a falha. -->
     <jacoco.line.minimum>0.80</jacoco.line.minimum>
     <jacoco.branch.minimum>0.70</jacoco.branch.minimum>
@@ -43,6 +45,33 @@
       <groupId>org.wiremock</groupId>
       <artifactId>wiremock-standalone</artifactId>
       <version>${wiremock.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- Cucumber-JVM (especificação executável, docs/testes/bdd-aprovacao-bloqueio.md). Escopo de teste. -->
+    <dependency>
+      <groupId>io.cucumber</groupId>
+      <artifactId>cucumber-java</artifactId>
+      <version>${cucumber.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.cucumber</groupId>
+      <artifactId>cucumber-junit-platform-engine</artifactId>
+      <version>${cucumber.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- Suíte JUnit Platform que hospeda o motor Cucumber (@Suite). Versão alinhada ao JUnit 5.12.2:
+         sem a declaração direta, o cucumber-junit-platform-engine traria junit-platform-engine 1.11.2. -->
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-suite</artifactId>
+      <version>${junit-platform.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-engine</artifactId>
+      <version>${junit-platform.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
