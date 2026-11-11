@@ -292,7 +292,7 @@ public class PassosReservas {
 
     @E("a mensagem informa conflito com o período bloqueado")
     public void mensagemConflito() throws IOException {
-        String mensagem = corpoResposta().get("erro").asText();
+        String mensagem = corpoResposta().get("detail").asText();
         assertTrue(mensagem.contains(MENSAGEM_CONFLITO), mensagem);
     }
 
