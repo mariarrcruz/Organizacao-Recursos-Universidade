@@ -1,5 +1,6 @@
 package com.organizacao.recursos.servico;
 
+import static com.organizacao.recursos.servico.Autorizacao.exigirAlgumPerfil;
 import static com.organizacao.recursos.servico.Autorizacao.exigirAutenticado;
 import static com.organizacao.recursos.servico.Autorizacao.exigirPerfil;
 import static com.organizacao.recursos.servico.Autorizacao.tem;
@@ -229,12 +230,10 @@ public class ServicoReservas {
         return reservasDoRecurso(recursoId);
     }
 
+    /** Histórico de uma reserva: somente Responsável e Administrador, mesmo para o dono (RN-09). */
     public synchronized List<EventoAuditoria> eventosDe(Usuario ator, String reservaId) {
-        exigirAutenticado(ator);
-        Reserva r = buscarObrigatoria(reservaId);
-        if (!(ehDono(ator, r) || tem(ator, Perfil.RESPONSAVEL) || tem(ator, Perfil.ADMINISTRADOR))) {
-            throw new ErroAplicacao(403, "Sem permissão para consultar a auditoria desta reserva");
-        }
+        exigirAlgumPerfil(ator, Perfil.RESPONSAVEL, Perfil.ADMINISTRADOR);
+        buscarObrigatoria(reservaId);
         return armazenamento.listarEventos().stream().filter(e -> e.reservaId().equals(reservaId)).toList();
     }
 
