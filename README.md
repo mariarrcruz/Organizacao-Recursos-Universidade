@@ -11,8 +11,8 @@ Este README descreve **o que a aplicação faz hoje**. O que ainda não existe e
 | Perfil | Pode |
 |---|---|
 | **Solicitante** | Criar, alterar e excluir (somente em `SOLICITADA`) as próprias reservas; cancelar as próprias reservas; iniciar o uso e concluir as próprias reservas |
-| **Responsável** | Aprovar ou rejeitar reservas de outros usuários; registrar não comparecimento; consultar o histórico de qualquer reserva |
-| **Administrador** | Cadastrar recursos e manutenções; consultar o histórico de qualquer reserva; listar as reservas de um recurso |
+| **Responsável** | Criar a própria reserva; aprovar ou rejeitar reservas dos recursos vinculados a ele (não as próprias); consultar reservas e registrar não comparecimento nesses recursos; consultar o histórico |
+| **Administrador** | Cadastrar recursos e manutenções; vincular Responsáveis a recursos; consultar o histórico; listar as reservas de um recurso. Não cria reservas |
 
 Acesso sem token recebe `401`. Perfil sem permissão recebe `403`. Transição inválida para o estado atual recebe `409`.
 
@@ -64,7 +64,7 @@ Não há login por senha. Com `app.dev.tokens=true`, o endpoint `POST /dev/token
 ```bash
 curl -s -X POST http://localhost:8080/dev/tokens \
      -H 'Content-Type: application/json' \
-     -d '{"sub":"admin1","perfis":["ADMINISTRADOR"]}'
+     -d '{"sub":"prof1","perfis":["SOLICITANTE"]}'
 ```
 
 Use o valor de `token` como `Authorization: Bearer <token>`. **Fora do laboratório, mantenha `app.dev.tokens=false`** (padrão em `application.properties`). O comando acima com `--app.dev.tokens=true` está documentado só para demonstração.
@@ -75,16 +75,18 @@ Use o valor de `token` como `Authorization: Bearer <token>`. **Fora do laborató
 
 | Método e caminho | Perfil | Descrição |
 |---|---|---|
-| `POST /dev/tokens` | (somente com `app.dev.tokens=true`) | Emite token de laboratório |
+| `POST /dev/tokens` | (somente com `app.dev.tokens=true`) | Emite token de laboratório para SOLICITANTE e RESPONSAVEL; ADMINISTRADOR é recusado com `400` |
 | `POST /recursos` | Administrador | Cadastra recurso (sala, professor, material) |
+| `POST /vinculos` | Administrador | Vincula um Responsável a um recurso (`responsavelId`, `recursoId`) |
 | `POST /manutencoes` | Administrador | Bloqueia um recurso em um período de manutenção |
-| `POST /reservas` | Autenticado | Solicita reserva. Recurso restrito nasce `SOLICITADA`; livre nasce `APROVADA` |
+| `POST /reservas` | Solicitante ou Responsável | Solicita reserva. Recurso restrito nasce `SOLICITADA`; livre nasce `APROVADA` |
 | `GET /reservas?recursoId=` | Administrador | Lista as reservas de um recurso |
-| `GET /reservas/{id}` | Dono, Responsável, Administrador | Consulta uma reserva |
+| `GET /disponibilidade?recursoId=&inicio=&fim=` | Autenticado | Diz se o recurso está livre no intervalo (`disponivel`: true ou false). Não revela quem reservou |
+| `GET /reservas/{id}` | Dono, Responsável vinculado ao recurso, Administrador | Consulta uma reserva |
 | `PUT /reservas/{id}` | Dono | Altera o período (somente em `SOLICITADA`) |
 | `DELETE /reservas/{id}` | Dono | Exclui (somente em `SOLICITADA`; reserva iniciada não pode ser apagada) |
-| `POST /reservas/{id}/aprovacao` | Responsável (não dono) | Aprova |
-| `POST /reservas/{id}/rejeicao` | Responsável (não dono) | Rejeita, com justificativa |
+| `POST /reservas/{id}/aprovacao` | Responsável vinculado ao recurso (não dono) | Aprova |
+| `POST /reservas/{id}/rejeicao` | Responsável vinculado ao recurso (não dono) | Rejeita, com justificativa |
 | `POST /reservas/{id}/inicio-uso` | Dono ou Responsável | Inicia o uso a partir do horário de início |
 | `POST /reservas/{id}/conclusao` | Dono ou Responsável | Conclui o uso |
 | `POST /reservas/{id}/cancelamento` | Dono | Cancela, com justificativa; em `APROVADA`, só antes do início |
@@ -95,10 +97,14 @@ Use o valor de `token` como `Authorization: Bearer <token>`. **Fora do laborató
 
 ### Fluxo mínimo
 
-1. Administrador cadastra um recurso: `POST /recursos`.
+1. Recurso e vínculo do Responsável são preparados no banco, porque a API não emite token de Administrador (ver `docs/execucao-local.md`, §3).
 2. Solicitante reserva: `POST /reservas`.
 3. Se o recurso for restrito, o Responsável aprova: `POST /reservas/{id}/aprovacao`.
 4. Qualquer participante autorizado consulta o histórico: `GET /reservas/{id}/auditoria`.
+
+### Erros
+
+Toda resposta de erro segue RFC 9457 (`application/problem+json`), com `type`, `title`, `status` e `detail`. O `detail` traz a mensagem de negócio ou a indicação do campo (por exemplo, `Informe o campo inicio no formato AAAA-MM-DDTHH:MM`). Erros inesperados respondem `500` com mensagem genérica; o detalhe técnico fica no log do servidor, nunca na resposta.
 
 ### Regras de integridade
 
@@ -205,7 +211,7 @@ Os testes seguem o ciclo vermelho → verde → refatoração; os commits `test(
 Detalhes e ações em `docs/status-requisitos.md`, seção 5.
 
 - **Sem login real.** A identidade é o que o emissor de token declara. O endpoint de token de laboratório deve ficar desligado fora da demonstração (PEN-01).
-- **Responsável não é vinculado a recursos.** Qualquer Responsável aprova qualquer reserva restrita (PEN-01c).
+- **Sem token de Administrador.** O token de laboratório não emite `ADMINISTRADOR` (D4). Enquanto não houver login (PEN-01b), as operações de Administrador (cadastro de recursos, manutenções e vínculos) não são alcançáveis pela API.
 - **Sem gestão de recursos além do cadastro.** Não há `GET /recursos`, `PUT` nem `DELETE` (PEN-05).
 - **Sem interface web.** A API é o único ponto de entrada (PEN-06).
 - **Sem movimentações (retirada e devolução) e sem os demais relatórios HTTP** (carga por sala, contagem por estado, movimentações). O relatório de utilização já está disponível (PEN-07).

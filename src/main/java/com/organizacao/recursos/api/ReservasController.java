@@ -55,11 +55,14 @@ public class ReservasController {
     public ResponseEntity<ReservaJson> solicitar(@RequestHeader(value = "Authorization", required = false) String autorizacao,
                                                  @RequestBody SolicitacaoJson corpo) {
         Usuario ator = autenticacao.autenticar(autorizacao);
+        if (corpo.recursoId() == null || corpo.recursoId().isBlank()) {
+            throw new ErroAplicacao(400, "Informe o recurso da reserva (campo recursoId)");
+        }
         Recurso recurso = recursos.apply(corpo.recursoId());
         if (recurso == null) {
             throw new ErroAplicacao(404, "Recurso não encontrado: " + corpo.recursoId());
         }
-        Reserva nova = servico.solicitar(ator, recurso, Datas.instante(corpo.inicio()), Datas.instante(corpo.fim()));
+        Reserva nova = servico.solicitar(ator, recurso, Datas.instante(corpo.inicio(), "inicio"), Datas.instante(corpo.fim(), "fim"));
         return ResponseEntity.status(HttpStatus.CREATED).body(ReservaJson.de(nova));
     }
 
@@ -82,7 +85,7 @@ public class ReservasController {
                                @PathVariable("id") String id, @RequestBody PeriodoJson corpo) {
         Usuario ator = autenticacao.autenticar(autorizacao);
         return ReservaJson.de(servico.alterar(ator, referencia(id),
-                Datas.instante(corpo.inicio()), Datas.instante(corpo.fim())));
+                Datas.instante(corpo.inicio(), "inicio"), Datas.instante(corpo.fim(), "fim")));
     }
 
     @DeleteMapping("/{id}")

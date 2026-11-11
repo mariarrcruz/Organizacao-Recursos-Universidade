@@ -63,3 +63,10 @@ CREATE TABLE IF NOT EXISTS conflito_reserva (
     inicio       timestamptz  NOT NULL,
     fim          timestamptz  NOT NULL
 );
+
+-- Responsável vinculado a recurso (D3, persona do Responsável: "sob sua responsabilidade").
+CREATE TABLE IF NOT EXISTS vinculo_responsavel (
+    responsavel_id varchar(64) NOT NULL,
+    recurso_id     varchar(64) NOT NULL,
+    PRIMARY KEY (responsavel_id, recurso_id)
+);

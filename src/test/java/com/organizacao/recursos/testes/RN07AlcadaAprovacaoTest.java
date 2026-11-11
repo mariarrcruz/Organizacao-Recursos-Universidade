@@ -1,5 +1,6 @@
 package com.organizacao.recursos.testes;
 
+import org.junit.jupiter.api.BeforeEach;
 import static com.organizacao.recursos.testes.Fixtures.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -18,6 +19,12 @@ class RN07AlcadaAprovacaoTest {
     private final Usuario admin = administrador("adm");
     private final Recurso restrito = sala("S-RESTRITA", true);
     private final Recurso livre = sala("S-LIVRE", false);
+
+    @BeforeEach
+    void vincularResponsavelDeTeste() {
+        servico.vincularResponsavel(admin, "resp", "S-LIVRE");
+        servico.vincularResponsavel(admin, "resp", "S-RESTRITA");
+    }
 
     @Test
     @DisplayName("RN-07.1 — Restrito=true + Responsável: aprovação permitida")

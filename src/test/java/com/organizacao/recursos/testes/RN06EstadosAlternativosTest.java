@@ -1,5 +1,6 @@
 package com.organizacao.recursos.testes;
 
+import org.junit.jupiter.api.BeforeEach;
 import static com.organizacao.recursos.testes.Fixtures.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -18,6 +19,11 @@ class RN06EstadosAlternativosTest {
     private final Usuario alice = solicitante("alice");
     private final Usuario resp = responsavel("resp");
     private final Recurso sala = sala("S1", false);
+
+    @BeforeEach
+    void vincularResponsavelDeTeste() {
+        servico.vincularResponsavel(administrador("adm"), "resp", "S1");
+    }
 
     @Test
     @DisplayName("RN-06.1 — SOLICITADA → REJEITADA por Responsável: permitido")

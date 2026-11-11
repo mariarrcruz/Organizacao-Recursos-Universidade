@@ -27,6 +27,11 @@ public class DesenvolvimentoTokensController {
 
     @PostMapping
     public Map<String, String> emitir(@RequestBody PedidoToken pedido) {
+        // D4: o token de laboratório não emite ADMINISTRADOR; a atribuição desse perfil fica fora do endpoint.
+        if (pedido.perfis() != null && pedido.perfis().stream().anyMatch(p -> "ADMINISTRADOR".equals(p))) {
+            throw new com.organizacao.recursos.dominio.ErroAplicacao(400,
+                    "Perfil ADMINISTRADOR não é emitido pelo token de laboratório");
+        }
         return Map.of("token", autenticacao.gerarToken(pedido.sub(), pedido.perfis(), Instant.now().plusSeconds(3600)));
     }
 

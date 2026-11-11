@@ -1,5 +1,6 @@
 package com.organizacao.recursos.testes;
 
+import org.junit.jupiter.api.BeforeEach;
 import static com.organizacao.recursos.testes.Fixtures.*;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -32,6 +33,12 @@ class RF15ControleAcessoPerfilTest {
     private final Usuario admin = administrador("adm");
     private final Recurso sala = sala("S1", false);
     private final Recurso salaRestrita = sala("S-RESTRITA", true);
+
+    @BeforeEach
+    void vincularResponsavelDeTeste() {
+        reservas.vincularResponsavel(admin, "resp", "S1");
+        reservas.vincularResponsavel(admin, "resp", "S-RESTRITA");
+    }
 
     @Nested
     @DisplayName("Solicitante")

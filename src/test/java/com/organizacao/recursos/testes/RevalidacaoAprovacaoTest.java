@@ -1,5 +1,6 @@
 package com.organizacao.recursos.testes;
 
+import org.junit.jupiter.api.BeforeEach;
 import static com.organizacao.recursos.testes.Fixtures.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -20,6 +21,11 @@ class RevalidacaoAprovacaoTest {
     private final Usuario resp = responsavel("resp");
     private final Usuario admin = administrador("adm");
     private final Recurso sala01 = sala("SALA-01", true);
+
+    @BeforeEach
+    void vincularResponsavelDeTeste() {
+        servico.vincularResponsavel(admin, "resp", "SALA-01");
+    }
 
     @Test
     @DisplayName("Manutenção criada após a solicitação sobrepõe a reserva: aprovação recusada com 409 e estado continua SOLICITADA")

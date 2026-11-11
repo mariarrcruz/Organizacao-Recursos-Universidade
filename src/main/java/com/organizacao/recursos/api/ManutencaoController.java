@@ -30,7 +30,7 @@ public class ManutencaoController {
                                       @RequestBody ManutencaoJson corpo) {
         Usuario ator = autenticacao.autenticar(autorizacao);
         servico.criarManutencao(ator, new Manutencao(corpo.recursoId(),
-                Datas.instante(corpo.inicio()), Datas.instante(corpo.fim())));
+                Datas.instante(corpo.inicio(), "inicio"), Datas.instante(corpo.fim(), "fim")));
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 

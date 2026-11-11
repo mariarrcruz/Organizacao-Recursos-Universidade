@@ -6,6 +6,7 @@ import com.organizacao.recursos.dominio.Perfil;
 import com.organizacao.recursos.dominio.Usuario;
 import com.organizacao.recursos.servico.ServicoAutenticacao;
 import java.util.List;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /** Token de laboratório: o JWT emitido tem o sub e os perfis pedidos e é aceito pelo serviço de autenticação. */
@@ -23,5 +24,21 @@ class DesenvolvimentoTokensControllerTest {
 
         assertEquals("resp1", usuario.id());
         assertEquals(Perfil.RESPONSAVEL, usuario.perfis().iterator().next());
+    }
+
+    @Test
+    @DisplayName("D4 — Token de laboratório não emite ADMINISTRADOR: 400")
+    void administradorNaoEEmitidoPeloLaboratorio() {
+        org.junit.jupiter.api.Assertions.assertThrows(com.organizacao.recursos.dominio.ErroAplicacao.class,
+                () -> controller.emitir(new DesenvolvimentoTokensController.PedidoToken("adm",
+                        List.of("ADMINISTRADOR"))));
+    }
+
+    @Test
+    @DisplayName("D4 — Mistura com ADMINISTRADOR também é recusada: 400")
+    void perfilAdministrativoMisturadoETambemRecusado() {
+        org.junit.jupiter.api.Assertions.assertThrows(com.organizacao.recursos.dominio.ErroAplicacao.class,
+                () -> controller.emitir(new DesenvolvimentoTokensController.PedidoToken("x",
+                        List.of("SOLICITANTE", "ADMINISTRADOR"))));
     }
 }

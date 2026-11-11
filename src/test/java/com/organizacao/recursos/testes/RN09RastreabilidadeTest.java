@@ -1,5 +1,6 @@
 package com.organizacao.recursos.testes;
 
+import org.junit.jupiter.api.BeforeEach;
 import static com.organizacao.recursos.testes.Fixtures.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -20,6 +21,11 @@ class RN09RastreabilidadeTest {
     private final Usuario resp = responsavel("resp");
     private final Usuario admin = administrador("adm");
     private final Recurso sala = sala("S1", true);
+
+    @BeforeEach
+    void vincularResponsavelDeTeste() {
+        servico.vincularResponsavel(admin, "resp", "S1");
+    }
 
     @Test
     @DisplayName("RN-09.1 — Criar reserva (SOLICITADA): registro de auditoria criado")

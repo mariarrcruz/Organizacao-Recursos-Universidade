@@ -55,6 +55,10 @@ public class ServicoReservas {
 
     public synchronized Reserva solicitar(Usuario ator, Recurso recurso, LocalDateTime inicio, LocalDateTime fim) {
         exigirAutenticado(ator);
+        // Quem cria reserva é Solicitante ou Responsável (AMB-03). Administrador não cria reservas (D5).
+        if (!tem(ator, Perfil.SOLICITANTE) && !tem(ator, Perfil.RESPONSAVEL)) {
+            throw new ErroAplicacao(403, "Somente Solicitante ou Responsável criam reservas");
+        }
         validarPeriodo(inicio, fim);
         if (recurso == null) {
             throw new ErroAplicacao(400, "Recurso obrigatório");
@@ -179,10 +183,10 @@ public class ServicoReservas {
         };
     }
 
-    private static void exigirAutorizacaoTransicao(Usuario ator, Reserva r, EstadoReserva destino) {
+    private void exigirAutorizacaoTransicao(Usuario ator, Reserva r, EstadoReserva destino) {
         boolean permitido = switch (destino) {
-            case APROVADA -> tem(ator, Perfil.RESPONSAVEL) && !ehDono(ator, r);
-            case REJEITADA -> tem(ator, Perfil.RESPONSAVEL) && !ehDono(ator, r);
+            case APROVADA -> tem(ator, Perfil.RESPONSAVEL) && !ehDono(ator, r) && vinculado(ator, r);
+            case REJEITADA -> tem(ator, Perfil.RESPONSAVEL) && !ehDono(ator, r) && vinculado(ator, r);
             case NAO_COMPARECEU -> tem(ator, Perfil.RESPONSAVEL);
             case CANCELADA -> ehDono(ator, r);
             case EM_USO, CONCLUIDA -> ehDono(ator, r) || tem(ator, Perfil.RESPONSAVEL);
@@ -215,11 +219,21 @@ public class ServicoReservas {
                 .filter(r -> r.getEstado() == EstadoReserva.SOLICITADA).toList();
     }
 
-    /** Consulta uma reserva: dono, Responsável ou Administrador (RF-16). */
+    /** Vincula um Responsável a um recurso (D3). Só Administrador. */
+    public synchronized void vincularResponsavel(Usuario ator, String responsavelId, String recursoId) {
+        exigirPerfil(ator, Perfil.ADMINISTRADOR);
+        if (responsavelId == null || responsavelId.isBlank() || recursoId == null || recursoId.isBlank()) {
+            throw new ErroAplicacao(400, "Responsável e recurso são obrigatórios");
+        }
+        armazenamento.gravarVinculo(responsavelId, recursoId);
+    }
+
+    /** Consulta uma reserva: dono, Administrador ou Responsável vinculado ao recurso (RF-16, D3). */
     public synchronized Reserva consultar(Usuario ator, String reservaId) {
         exigirAutenticado(ator);
         Reserva r = buscarObrigatoria(reservaId);
-        if (!(ehDono(ator, r) || tem(ator, Perfil.RESPONSAVEL) || tem(ator, Perfil.ADMINISTRADOR))) {
+        boolean responsavelVinculado = tem(ator, Perfil.RESPONSAVEL) && vinculado(ator, r);
+        if (!(ehDono(ator, r) || responsavelVinculado || tem(ator, Perfil.ADMINISTRADOR))) {
             throw new ErroAplicacao(403, "Sem permissão para consultar esta reserva");
         }
         return r;
@@ -268,6 +282,16 @@ public class ServicoReservas {
 
     synchronized boolean temConflito(String recursoId, LocalDateTime inicio, LocalDateTime fim) {
         return sobrepoeManutencao(recursoId, inicio, fim) || sobrepoeReserva(recursoId, inicio, fim, null);
+    }
+
+    /**
+     * Consulta de disponibilidade: livre de reservas ativas e de manutenção no intervalo. Qualquer usuário
+     * autenticado consulta; o retorno não identifica reservas de terceiros.
+     */
+    public synchronized boolean disponivel(Usuario ator, String recursoId, LocalDateTime inicio, LocalDateTime fim) {
+        exigirAutenticado(ator);
+        validarPeriodo(inicio, fim);
+        return !temConflito(recursoId, inicio, fim);
     }
 
     /** Tentativas recusadas por sobreposição com reserva (conflitos evitados, RF-12). */
@@ -329,6 +353,11 @@ public class ServicoReservas {
     /** Verdadeiro enquanto o horário de início da reserva ainda não chegou (relógio injetado). */
     private boolean antesDoInicio(Reserva r) {
         return LocalDateTime.now(relogio).isBefore(r.getInicio());
+    }
+
+    /** Responsável vinculado ao recurso da reserva (D3). */
+    private boolean vinculado(Usuario ator, Reserva r) {
+        return ator != null && armazenamento.existeVinculo(ator.id(), r.getRecurso().id());
     }
 
     private static boolean ehDono(Usuario ator, Reserva r) {

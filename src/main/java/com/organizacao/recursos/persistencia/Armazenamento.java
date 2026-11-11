@@ -51,4 +51,9 @@ public interface Armazenamento {
     void registrarConflito(ConflitoReserva conflito);
 
     List<ConflitoReserva> listarConflitos();
+
+    /** Vincula um Responsável a um recurso (D3). Gravar de novo o mesmo vínculo não tem efeito. */
+    void gravarVinculo(String responsavelId, String recursoId);
+
+    boolean existeVinculo(String responsavelId, String recursoId);
 }

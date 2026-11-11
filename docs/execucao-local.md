@@ -23,16 +23,28 @@ Na subida, o esquema é criado no banco (ADR-017). A aplicação escuta em `http
 
 ```
 curl -s -X POST http://localhost:8080/dev/tokens -H 'Content-Type: application/json' \
-     -d '{"sub":"admin1","perfis":["ADMINISTRADOR"]}'
+     -d '{"sub":"prof1","perfis":["SOLICITANTE"]}'
 ```
 
-Fora do laboratório, mantenha `app.dev.tokens=false`. O login real por credenciais ainda não existe (pendência em `docs/RTM.md`).
+O token de laboratório não emite `ADMINISTRADOR` (D4): a requisição responde `400`. Por isso as operações de Administrador (cadastro de recursos, manutenções e vínculos de Responsável) não são alcançáveis pela API. Prepare-as direto no banco, como no passo 3. Fora do laboratório, mantenha `app.dev.tokens=false`. O login real por credenciais ainda não existe (PEN-01b).
 
 ## 3. Fluxo mínimo
 
-1. Cadastrar um recurso (perfil ADMINISTRADOR): `POST /recursos`.
+1. Cadastrar um recurso direto no banco (a API não emite token de Administrador):
+
+```
+docker compose exec postgres psql -U organizacao -d organizacao -c \
+  "INSERT INTO recurso (id, tipo, nome, localizacao, capacidade, restrito, status, competencias) VALUES ('SALA-1','SALA','Sala 1','BLOCO_A',30,true,'DISPONIVEL','');"
+```
 2. Solicitar reserva (perfil SOLICITANTE): `POST /reservas`.
-3. Aprovar (perfil RESPONSAVEL, só recurso restrito): `POST /reservas/{id}/aprovacao`.
+3. Vincular o Responsável ao recurso, também no banco (D3):
+
+```
+docker compose exec postgres psql -U organizacao -d organizacao -c \
+  "INSERT INTO vinculo_responsavel (responsavel_id, recurso_id) VALUES ('resp1','SALA-1');"
+```
+
+4. Aprovar (perfil RESPONSAVEL vinculado ao recurso, só recurso restrito): `POST /reservas/{id}/aprovacao`.
 4. Consultar auditoria: `GET /reservas/{id}/auditoria`.
 
 ## 4. Testes
