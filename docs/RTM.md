@@ -899,6 +899,8 @@ Conforme RNF-01 (PRD) e RNF-06 (RFC), testes de carga com Apache JMeter. Cenári
 
 Aferição deve registrar: hardware/SO, versão Java e Spring Boot, configuração do H2, volume/distribuição de dados, script e versão do teste, aquecimento e duração, média/p95/máximo/throughput/taxa de erro, conflitos esperados vs rejeitados, commit avaliado (arquitetura.md §11.3).
 
+**Rastreio dos requisitos de desempenho (RNF-03-P1, RNF-04-P1, RNF-06-P1/P2):** o plano e a proposta de limites estão em `docs/performance/rnf.md`; o script é `perf/reservas.jmx`; o resultado da rodada-01 está em `docs/performance/resultado-01.md` (ambiente local, uma rodada, PostgreSQL 16.14, aplicação no commit `002c2bc` com `src/` idêntico a `c62ee0c`). Situação: **decisão INCONCLUSIVO**. Os limites propostos foram cumpridos nessa rodada (p95 consulta 326 ms, criação 335 ms, erro real 0), mas o `rnf.md` exige ao menos três rodadas em ambiente de referência antes de fixar o critério. Os dados também indicam, como hipótese a verificar, que o custo está no caminho de persistência da reserva (conexão JDBC por operação e leitura integral da tabela `reserva`), e não no volume de dados, que é baixo nesta rodada.
+
 ### 7.2 Robustez
 
 - Reservas simultâneas do mesmo recurso: integridade garantida pelo mecanismo de AD-04; prova pelo estado final do banco (TG-07).
@@ -1073,7 +1075,10 @@ A ocorrência de qualquer um inviabiliza a aprovação máxima:
 | RTM-01 | RTM completa | Qualidade | Alta | Documentação | Falta de rastreabilidade | — | 100% requisitos críticos mapeados | `RTM.md` | Este documento |
 | RNF-04 / RNF-09 | CI via GitHub Actions | Não funcional | Alta | Pipeline | Pipeline ausente | — | Pipeline em PR; falhas bloqueiam | Workflow, artefatos | Planejado |
 | RNF-05 / RNF-10 | TDD/BDD em ≥ 1 funcionalidade | Prática | Média | A definir | Ausência de prática de engenharia | TG-09 | Funcionalidade desenvolvida com TDD/BDD | Histórico de commits; `src/test/resources/features/`; ver §5.3.1 | Implementado (local; CI pendente) |
-| RNF-01 PRD / RNF-06 | Testes de carga com JMeter | Não funcional | Alta | A definir | Degradação sob carga | TG-11 | Estabilidade sob carga (metas pendentes P5) | Relatório JMeter | Planejado |
+| RNF-01 PRD / RNF-06 | Testes de carga com JMeter | Não funcional | Alta | A definir | Degradação sob carga | TG-11 | Estabilidade sob carga (metas pendentes P5) | Relatório JMeter | Executado (rodada-01 local); critério em revisão |
+| RNF-03-P1 (proposta) | p95 da consulta de disponibilidade ≤ 500 ms, 50 usuários | Não funcional | Alta | reservations | Lentidão na consulta | TG-11 | p95 ≤ 500 ms (`docs/performance/rnf.md` §2) | `perf/reservas.jmx`, `perf/resultados/rodada-01.jtl`, `docs/performance/resultado-01.md` | Medido, 1 rodada: 326 ms; decisão INCONCLUSIVO |
+| RNF-04-P1 (proposta) | p95 da criação de reserva ≤ 500 ms, 50 usuários | Não funcional | Alta | reservations | Lentidão na criação | TG-11 | p95 ≤ 500 ms (`rnf.md` §2) | Mesmas do RNF-03-P1 | Medido, 1 rodada: 335 ms (somente 409); decisão INCONCLUSIVO |
+| RNF-06-P1 / RNF-06-P2 (proposta) | Taxa de erro < 1% e respostas fora de {201, 409} = 0 na mistura de carga | Não funcional | Alta | reservations | Erro sob carga | TG-11 | Erro real < 1%; 0 respostas 5xx ou inesperadas (409 não conta como erro) | Mesmas do RNF-03-P1 | Medido, 1 rodada: 0,00% erro real; 0 respostas inesperadas; decisão INCONCLUSIVO |
 
 ---
 
