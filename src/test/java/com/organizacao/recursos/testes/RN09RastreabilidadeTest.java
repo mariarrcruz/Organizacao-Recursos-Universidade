@@ -13,7 +13,9 @@ import org.junit.jupiter.api.Test;
 /** Regra RN-09 — Rastreabilidade obrigatória: toda mudança de estado gera auditoria imutável (PRD § 4.2; RFC RF-11; RNF-12). */
 class RN09RastreabilidadeTest {
 
-    private final ServicoReservas servico = new ServicoReservas();
+    /** Relógio fixo às 09:00 do dia das fixtures: o cancelamento só é permitido antes do início (10:00). */
+    private final ServicoReservas servico = new ServicoReservas(
+            java.time.Clock.fixed(t("09:00").toInstant(java.time.ZoneOffset.UTC), java.time.ZoneOffset.UTC));
     private final Usuario alice = solicitante("alice");
     private final Usuario resp = responsavel("resp");
     private final Usuario admin = administrador("adm");
