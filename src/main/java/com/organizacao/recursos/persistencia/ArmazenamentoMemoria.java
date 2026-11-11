@@ -22,6 +22,7 @@ public final class ArmazenamentoMemoria implements Armazenamento {
     private final List<Manutencao> manutencoes = new ArrayList<>();
     private final List<EventoAuditoria> eventos = new ArrayList<>();
     private final List<ConflitoReserva> conflitos = new ArrayList<>();
+    private final java.util.Set<List<String>> vinculos = new java.util.HashSet<>();
     private final Map<String, Recurso> recursos = new HashMap<>();
 
     @Override
@@ -93,5 +94,15 @@ public final class ArmazenamentoMemoria implements Armazenamento {
     @Override
     public synchronized List<ConflitoReserva> listarConflitos() {
         return List.copyOf(conflitos);
+    }
+
+    @Override
+    public synchronized void gravarVinculo(String responsavelId, String recursoId) {
+        vinculos.add(List.of(responsavelId, recursoId));
+    }
+
+    @Override
+    public synchronized boolean existeVinculo(String responsavelId, String recursoId) {
+        return vinculos.contains(List.of(responsavelId, recursoId));
     }
 }

@@ -68,7 +68,7 @@ public final class ArmazenamentoPostgres implements Armazenamento {
     /** Esvazia as tabelas (usado entre cenários de teste). */
     public void limpar() {
         try (Connection c = conectar(); Statement st = c.createStatement()) {
-            st.execute("TRUNCATE reserva, manutencao, evento_auditoria, conflito_reserva, recurso");
+            st.execute("TRUNCATE reserva, manutencao, evento_auditoria, conflito_reserva, vinculo_responsavel, recurso");
         } catch (SQLException e) {
             throw new IllegalStateException("Falha ao limpar tabelas", e);
         }
@@ -208,6 +208,34 @@ public final class ArmazenamentoPostgres implements Armazenamento {
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new IllegalStateException("Falha ao registrar conflito", e);
+        }
+    }
+
+    @Override
+    public void gravarVinculo(String responsavelId, String recursoId) {
+        try (Connection c = conectar();
+             PreparedStatement ps = c.prepareStatement(
+                     "INSERT INTO vinculo_responsavel (responsavel_id, recurso_id) VALUES (?, ?) ON CONFLICT DO NOTHING")) {
+            ps.setString(1, responsavelId);
+            ps.setString(2, recursoId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Falha ao gravar vínculo", e);
+        }
+    }
+
+    @Override
+    public boolean existeVinculo(String responsavelId, String recursoId) {
+        try (Connection c = conectar();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT 1 FROM vinculo_responsavel WHERE responsavel_id = ? AND recurso_id = ?")) {
+            ps.setString(1, responsavelId);
+            ps.setString(2, recursoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("Falha ao consultar vínculo", e);
         }
     }
 
