@@ -11,6 +11,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeAll;
@@ -58,6 +59,7 @@ class ConcorrenciaReservaPostgresTest {
         ExecutorService pool = Executors.newFixedThreadPool(SOLICITACOES);
         CountDownLatch partida = new CountDownLatch(1);
         List<Future<Integer>> futuros = new ArrayList<>();
+        List<RuntimeException> falhas = new CopyOnWriteArrayList<>();
         try {
             for (int i = 0; i < SOLICITACOES; i++) {
                 String solicitante = "solicitante-" + i;
@@ -69,6 +71,7 @@ class ConcorrenciaReservaPostgresTest {
                     } catch (ErroAplicacao e) {
                         return e.getStatus();
                     } catch (RuntimeException e) {
+                        falhas.add(e);
                         return FALHA_INESPERADA;
                     }
                 }));
@@ -80,9 +83,10 @@ class ConcorrenciaReservaPostgresTest {
             }
 
             // Assert: resposta das solicitações
+            assertEquals(0, resultados.stream().filter(r -> r == FALHA_INESPERADA).count(),
+                    "falhas inesperadas: " + (falhas.isEmpty() ? "" : falhas.get(0).getCause() + " / " + falhas.get(0)));
             assertEquals(1, resultados.stream().filter(r -> r == HTTP_CRIADA).count(), "aceitas");
             assertEquals(SOLICITACOES - 1, resultados.stream().filter(r -> r == HTTP_CONFLITO).count(), "recusadas com 409");
-            assertEquals(0, resultados.stream().filter(r -> r == FALHA_INESPERADA).count(), "falhas inesperadas");
 
             // Assert: consulta direta no banco, independente da resposta
             assertEquals(1, repositorio.contarReservasAtivas(recursoId, inicio, fim), "linhas no banco para o recurso e intervalo");

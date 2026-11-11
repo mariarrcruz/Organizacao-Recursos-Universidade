@@ -1,6 +1,6 @@
 # DEF-001 — Dupla reserva sob solicitações simultâneas (persistência sem proteção)
 
-**Status:** corrigido (ver ADR-016; commit de correção indicado na seção Correção)
+**Status:** corrigido (ADR-016; correção com restrição EXCLUDE e lock por recurso, ver DEF-002)
 **Data da detecção:** 2026-11-11
 **Severidade:** crítica — limitador de nota (PRD RISK-01, dupla reserva inviabiliza o sistema)
 **Regras afetadas:** RN-02 (exclusividade de alocação), RN-03 (atomicidade sob concorrência), RNF-02
@@ -47,4 +47,4 @@ As linhas no banco batem com as respostas 201, portanto o banco gravou reservas 
 - `solicitar` passa a só fazer o `INSERT`; a violação (SQLSTATE `23P01`) vira `ErroAplicacao(409)`.
 - Decisão registrada em `docs/adr/016-exclusao-postgres-tstzrange.md`.
 
-Verificação: o mesmo teste passa nas cinco execuções seguidas (ver a seção de verificação do ADR-016 e o histórico de commits).
+Verificação: o teste passa nas cinco execuções seguidas do teste isolado e em execuções da suíte completa (ver ADR-016, seção Verificação). Durante as rodadas, apareceu o DEF-002, corrigido com o lock por recurso.

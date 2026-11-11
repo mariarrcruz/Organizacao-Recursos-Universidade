@@ -22,6 +22,9 @@ import java.util.UUID;
  */
 public class RepositorioReservasPostgres {
 
+    /** SQLSTATE 23P01: exclusion_violation (restrição EXCLUDE). */
+    static final String SQLSTATE_EXCLUSAO = "23P01";
+
     static final String ESTADOS_ATIVOS = "('SOLICITADA', 'APROVADA', 'EM_USO')";
 
     private final String url;
@@ -61,29 +64,54 @@ public class RepositorioReservasPostgres {
     }
 
     /**
-     * Cria uma reserva SOLICITADA. Recusa com 409 se o recurso já tem reserva ativa sobreposta.
+     * Cria uma reserva SOLICITADA numa transação. Antes do INSERT, trava a linha do recurso
+     * ({@code SELECT ... FOR UPDATE}): solicitações para o mesmo recurso passam uma de cada vez e não
+     * formam ciclo de espera (DEF-002). A restrição {@code reserva_sem_sobreposicao} é a barreira final
+     * (ADR-016); sua violação (SQLSTATE 23P01) vira 409.
      *
      * @return identificador da reserva criada
      */
     public String solicitar(String recursoId, String solicitanteId, LocalDateTime inicio, LocalDateTime fim) {
+        String id = UUID.randomUUID().toString();
         try (Connection c = conexao()) {
-            if (existeSobreposicao(c, recursoId, inicio, fim)) {
-                throw new ErroAplicacao(409, "Conflito de horário para o recurso " + recursoId);
+            c.setAutoCommit(false);
+            try {
+                travarRecurso(c, recursoId);
+                try (PreparedStatement ps = c.prepareStatement(
+                        "INSERT INTO reserva (id, recurso_id, solicitante_id, periodo, estado) "
+                                + "VALUES (?, ?, ?, tstzrange(?, ?, '[)'), 'SOLICITADA')")) {
+                    ps.setString(1, id);
+                    ps.setString(2, recursoId);
+                    ps.setString(3, solicitanteId);
+                    ps.setObject(4, inicio.atOffset(ZoneOffset.UTC));
+                    ps.setObject(5, fim.atOffset(ZoneOffset.UTC));
+                    ps.executeUpdate();
+                }
+                c.commit();
+                return id;
+            } catch (SQLException | RuntimeException e) {
+                c.rollback();
+                if (e instanceof SQLException sql && SQLSTATE_EXCLUSAO.equals(sql.getSQLState())) {
+                    throw new ErroAplicacao(409, "Conflito de horário para o recurso " + recursoId);
+                }
+                if (e instanceof ErroAplicacao erro) {
+                    throw erro;
+                }
+                throw new IllegalStateException("Falha ao solicitar reserva", e);
             }
-            String id = UUID.randomUUID().toString();
-            try (PreparedStatement ps = c.prepareStatement(
-                    "INSERT INTO reserva (id, recurso_id, solicitante_id, periodo, estado) "
-                            + "VALUES (?, ?, ?, tstzrange(?, ?, '[)'), 'SOLICITADA')")) {
-                ps.setString(1, id);
-                ps.setString(2, recursoId);
-                ps.setString(3, solicitanteId);
-                ps.setObject(4, inicio.atOffset(ZoneOffset.UTC));
-                ps.setObject(5, fim.atOffset(ZoneOffset.UTC));
-                ps.executeUpdate();
-            }
-            return id;
         } catch (SQLException e) {
             throw new IllegalStateException("Falha ao solicitar reserva", e);
+        }
+    }
+
+    private static void travarRecurso(Connection c, String recursoId) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement("SELECT id FROM recurso WHERE id = ? FOR UPDATE")) {
+            ps.setString(1, recursoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    throw new ErroAplicacao(404, "Recurso não encontrado: " + recursoId);
+                }
+            }
         }
     }
 
@@ -101,20 +129,6 @@ public class RepositorioReservasPostgres {
             }
         } catch (SQLException e) {
             throw new IllegalStateException("Falha ao contar reservas", e);
-        }
-    }
-
-    private boolean existeSobreposicao(Connection c, String recursoId, LocalDateTime inicio, LocalDateTime fim)
-            throws SQLException {
-        String sql = "SELECT 1 FROM reserva WHERE recurso_id = ? AND estado IN " + ESTADOS_ATIVOS
-                + " AND periodo && tstzrange(?, ?, '[)') LIMIT 1";
-        try (PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setString(1, recursoId);
-            ps.setObject(2, inicio.atOffset(ZoneOffset.UTC));
-            ps.setObject(3, fim.atOffset(ZoneOffset.UTC));
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
         }
     }
 
