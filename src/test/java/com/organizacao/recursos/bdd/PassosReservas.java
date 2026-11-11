@@ -57,6 +57,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
  * <p>Padrões do harness, que não são regra de negócio:
  * <ul>
  *   <li>Recurso citado sem configuração é criado restrito e DISPONIVEL (os cenários de SOLICITADA dependem disso).</li>
+ *   <li>O Responsável padrão ("resp") é vinculado a todo recurso do harness (D3, vínculo por recurso).</li>
  *   <li>Reserva citada sem período usa {@code 2026-11-20T10:00} a {@code 11:00}.</li>
  *   <li>Relógio começa em {@code 2026-11-20T10:30}; o ator autorizado ajusta o relógio só para transições
  *       com horário (ver {@link #ajustarRelogioPara(EstadoReserva)}).</li>
@@ -515,8 +516,12 @@ public class PassosReservas {
         return recursos.get(id);
     }
 
-    /** Atualiza o cadastro em memória (para o controlador) e no PostgreSQL (para a reserva ler o recurso). */
+    /**
+     * Atualiza o cadastro em memória (para o controlador) e no PostgreSQL (para a reserva ler o recurso).
+     * O Responsável padrão ("resp") fica vinculado a todo recurso do harness (D3): sem vínculo ele não aprova.
+     */
     private void atualizarRecurso(Recurso recurso) {
+        servico.vincularResponsavel(new Usuario("adm", EnumSet.of(Perfil.ADMINISTRADOR)), "resp", recurso.id());
         recursos.put(recurso.id(), recurso);
         armazenamento.gravarRecurso(recurso);
     }

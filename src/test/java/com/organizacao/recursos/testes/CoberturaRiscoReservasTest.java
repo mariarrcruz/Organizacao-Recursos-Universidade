@@ -66,6 +66,7 @@ class CoberturaRiscoReservasTest {
     @DisplayName("Rejeitar exige justificativa não vazia")
     void rejeitarExigeJustificativa(String justificativa) {
         ServicoReservas s = servicoEm(t("09:00"));
+        s.vincularResponsavel(admin, "resp", "S1");
         Reserva solicitada = reserva("R1", alice, sala, "10:00", "11:00", EstadoReserva.SOLICITADA);
         s.registrarExistente(solicitada);
         assertErro(400, () -> s.rejeitar(resp, solicitada, justificativa));
@@ -187,6 +188,7 @@ class CoberturaRiscoReservasTest {
     @DisplayName("Transição altera apenas a reserva alvo quando há várias armazenadas")
     void transicaoAlteraSomenteAlvo() {
         ServicoReservas s = servicoEm(t("09:00"));
+        s.vincularResponsavel(admin, "resp", "S1");
         Reserva r1 = reserva("R1", alice, sala, "10:00", "11:00", EstadoReserva.SOLICITADA);
         Reserva r2 = reserva("R2", alice, sala, "12:00", "13:00", EstadoReserva.SOLICITADA);
         s.registrarExistente(r1);
