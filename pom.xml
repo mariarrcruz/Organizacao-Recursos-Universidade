@@ -109,6 +109,12 @@
       <version>${testcontainers.version}</version>
       <scope>test</scope>
     </dependency>
+    <!-- Teste de contexto Spring Boot (configuração da aplicação). -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
     <!-- Cucumber-JVM (especificação executável, docs/testes/bdd-aprovacao-bloqueio.md). Escopo de teste. -->
     <dependency>
       <groupId>io.cucumber</groupId>
