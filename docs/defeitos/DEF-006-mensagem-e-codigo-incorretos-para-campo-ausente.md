@@ -1,6 +1,6 @@
 # DEF-006 — Campo obrigatório ausente gera mensagem sem sentido ou 404 em vez de 400
 
-**Status:** aberto (correção no commit que referencia este defeito)
+**Status:** corrigido (commit `5ee2077`)
 **Data da detecção:** 2026-11-11
 **Severidade:** média — o cliente não sabe qual campo corrigir; "null" aparece na mensagem; recurso ausente vira "não encontrado"
 **Regras afetadas:** validação de entrada (todas as operações com corpo ou parâmetro obrigatório)

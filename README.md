@@ -102,6 +102,10 @@ Use o valor de `token` como `Authorization: Bearer <token>`. **Fora do laborató
 3. Se o recurso for restrito, o Responsável aprova: `POST /reservas/{id}/aprovacao`.
 4. Qualquer participante autorizado consulta o histórico: `GET /reservas/{id}/auditoria`.
 
+### Erros
+
+Toda resposta de erro segue RFC 9457 (`application/problem+json`), com `type`, `title`, `status` e `detail`. O `detail` traz a mensagem de negócio ou a indicação do campo (por exemplo, `Informe o campo inicio no formato AAAA-MM-DDTHH:MM`). Erros inesperados respondem `500` com mensagem genérica; o detalhe técnico fica no log do servidor, nunca na resposta.
+
 ### Regras de integridade
 
 - **Sem dupla reserva.** Uma reserva ativa (`SOLICITADA`, `APROVADA` ou `EM_USO`) não pode se sobrepor a outra do mesmo recurso. A garantia está no PostgreSQL (restrição `EXCLUDE` com `tstzrange`) e num lock por recurso. Intervalos são semiabertos `[início, fim)`.

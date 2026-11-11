@@ -1,6 +1,6 @@
 # DEF-005 — Cadastro de recurso aceita capacidade negativa
 
-**Status:** aberto (correção no commit que referencia este defeito)
+**Status:** corrigido (commit `568f352`)
 **Data da detecção:** 2026-11-11
 **Severidade:** média — dado inválido persistido (recurso com capacidade -5 aparece em pesquisas e relatórios)
 **Regras afetadas:** validação de entrada do cadastro de recursos (RF-02)

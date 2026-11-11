@@ -1,6 +1,6 @@
 # DEF-003 — Respostas de erro fora do contrato ProblemDetail (RFC 9457)
 
-**Status:** aberto (correção no commit que referencia este defeito)
+**Status:** corrigido (commit `dbe1fd4`)
 **Data da detecção:** 2026-11-11
 **Severidade:** média — contrato de erro inconsistente; o cliente não consegue tratar erros de forma uniforme
 **Regras afetadas:** matriz de autorização (todas as células de erro), requisito de tratamento seguro de erros (NFR: "tratamento seguro de erros", especificação do projeto)

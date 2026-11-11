@@ -115,4 +115,5 @@ Como não há Spring Security, nenhuma rota tem regra declarativa. A pergunta é
   - Massa: recursos livres e um restrito; reservas da Alice em estados `SOLICITADA`, `APROVADA`, `EM_USO`, com a Alice como dona.
   - Papéis: `anon`, `alice` (Solicitante dono), `bob` (Solicitante terceiro), `resp`, `adm`.
 - A sonda montou os controllers diretamente, sem o `@ConditionalOnProperty`. Por isso o `POST /dev/tokens` aparece como 200 na sonda. Na aplicação com o padrão `app.dev.tokens=false`, a rota não é registrada e responde 404.
-- Não foi executado: teste de corpo ausente (`400` antes do `401`), nem a verificação de `POST /dev/tokens` com o flag ligado na aplicação.
+- Verificação automatizada: `scripts/gerar_matriz_autorizacao.py` gera `src/test/resources/seguranca/matriz-autorizacao.csv` a partir desta matriz; `MatrizAutorizacaoTest` roda cada célula com tokens reais (98 células de status e 75 de erro, cada uma também checada quanto a formato e vazamento). Células ❓ e linhas 1 e 15 ficam fora, com motivo impresso pelo gerador.
+- Não foi executado nesta análise: teste de corpo ausente (`400` antes do `401`), nem a verificação de `POST /dev/tokens` com o flag ligado na aplicação.

@@ -1,6 +1,6 @@
 # DEF-004 — Exceção não tratada vaza nome de enum, NullPointerException ou SQL
 
-**Status:** aberto (correção no commit que referencia este defeito)
+**Status:** corrigido (commit `93d7dc5`)
 **Data da detecção:** 2026-11-11
 **Severidade:** alta — vazamento de detalhe interno (nome de classe, mensagem de SQL) e erro de servidor onde deveria haver 400 ou 500 genérico
 **Regras afetadas:** tratamento seguro de erros; validação de entrada (ver DEF-005 e DEF-006)
