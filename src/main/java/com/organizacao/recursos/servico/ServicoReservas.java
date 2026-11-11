@@ -55,6 +55,10 @@ public class ServicoReservas {
 
     public synchronized Reserva solicitar(Usuario ator, Recurso recurso, LocalDateTime inicio, LocalDateTime fim) {
         exigirAutenticado(ator);
+        // Quem cria reserva é Solicitante ou Responsável (AMB-03). Administrador não cria reservas (D5).
+        if (!tem(ator, Perfil.SOLICITANTE) && !tem(ator, Perfil.RESPONSAVEL)) {
+            throw new ErroAplicacao(403, "Somente Solicitante ou Responsável criam reservas");
+        }
         validarPeriodo(inicio, fim);
         if (recurso == null) {
             throw new ErroAplicacao(400, "Recurso obrigatório");
