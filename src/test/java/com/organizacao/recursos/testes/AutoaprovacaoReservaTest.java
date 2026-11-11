@@ -29,4 +29,16 @@ class AutoaprovacaoReservaTest {
         assertErro(403, () -> servico.aprovar(carla, solicitada));
         assertEquals(EstadoReserva.SOLICITADA, servico.reservasDoRecurso("SALA-02").get(0).getEstado());
     }
+
+    @Test
+    @DisplayName("Usuário com perfis SOLICITANTE e RESPONSAVEL tenta rejeitar a própria reserva: recusado com 403 e estado continua SOLICITADA")
+    void usuarioComDoisPerfisNaoRejeitaPropriaReserva() {
+        // Arrange
+        Usuario carla = new Usuario("carla", Set.of(Perfil.SOLICITANTE, Perfil.RESPONSAVEL));
+        Recurso sala04 = sala("SALA-04", true);
+        Reserva solicitada = servico.solicitar(carla, sala04, t("10:00"), t("11:00"));
+        // Act & Assert
+        assertErro(403, () -> servico.rejeitar(carla, solicitada, "motivo"));
+        assertEquals(EstadoReserva.SOLICITADA, servico.reservasDoRecurso("SALA-04").get(0).getEstado());
+    }
 }
