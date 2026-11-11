@@ -132,6 +132,9 @@ public class ServicoReservas {
             throw new ErroAplicacao(409, "Transição proibida: " + atual.getEstado() + " → " + destino);
         }
         exigirAutorizacaoTransicao(ator, atual, destino);
+        if (destino == EstadoReserva.APROVADA) {
+            verificarDisponibilidade(atual.getRecurso().id(), atual.getInicio(), atual.getFim(), atual.getId());
+        }
         if (destino == EstadoReserva.CANCELADA && atual.getEstado() == EstadoReserva.APROVADA
                 && !LocalDateTime.now(relogio).isBefore(atual.getInicio())) {
             throw new ErroAplicacao(409, "Cancelamento só é permitido antes do início");
