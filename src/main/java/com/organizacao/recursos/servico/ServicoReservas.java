@@ -5,10 +5,11 @@ import static com.organizacao.recursos.servico.Autorizacao.exigirPerfil;
 import static com.organizacao.recursos.servico.Autorizacao.tem;
 
 import com.organizacao.recursos.dominio.*;
+import com.organizacao.recursos.persistencia.Armazenamento;
+import com.organizacao.recursos.persistencia.ArmazenamentoMemoria;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -18,9 +19,9 @@ import java.util.UUID;
 /**
  * Reservas, transições de estado, manutenção e auditoria.
  *
- * <p>Concorrência: todos os métodos que leem ou escrevem o armazenamento são {@code synchronized}
- * no mesmo monitor, o que serializa conflitos (RN-03). Decisão de implementação em memória;
- * ADR-004 prevê lock por recurso em banco, a ser substituído na camada de persistência.
+ * <p>Regras e ordem de verificação: transição (409) antes de perfil (403). O estado é gravado pelo
+ * {@link Armazenamento}: em memória nos testes unitários, em PostgreSQL na aplicação (ADR-017). No PostgreSQL
+ * a dupla reserva é recusada pelo banco mesmo entre instâncias do serviço (ADR-016).
  *
  * <p>Intervalos são semiabertos [início, fim) (RN-02, RN-04).
  */
@@ -30,9 +31,7 @@ public class ServicoReservas {
     private static final Set<EstadoReserva> ATIVAS =
             EnumSet.of(EstadoReserva.SOLICITADA, EstadoReserva.APROVADA, EstadoReserva.EM_USO);
 
-    private final List<Reserva> armazenadas = new ArrayList<>();
-    private final List<Manutencao> manutencoesArmazenadas = new ArrayList<>();
-    private final List<EventoAuditoria> auditoria = new ArrayList<>();
+    private final Armazenamento armazenamento;
     private final Clock relogio;
 
     /** Duração mínima de uma reserva (AMB-04, decisão provisória: 1 minuto). */
@@ -43,7 +42,12 @@ public class ServicoReservas {
     }
 
     public ServicoReservas(Clock relogio) {
+        this(relogio, new ArmazenamentoMemoria());
+    }
+
+    public ServicoReservas(Clock relogio, Armazenamento armazenamento) {
         this.relogio = relogio;
+        this.armazenamento = armazenamento;
     }
 
     // ---------------------------------------------------------------- criação e alteração
@@ -60,8 +64,7 @@ public class ServicoReservas {
         verificarDisponibilidade(recurso.id(), inicio, fim, null);
         EstadoReserva inicial = recurso.restrito() ? EstadoReserva.SOLICITADA : EstadoReserva.APROVADA;
         Reserva nova = new Reserva(UUID.randomUUID().toString(), ator, recurso, inicio, fim, inicial);
-        armazenadas.add(nova);
-        registrarEvento(nova.getId(), ator, "SOLICITAR", null, inicial, null);
+        armazenamento.inserirReserva(nova, evento(nova.getId(), ator, "SOLICITAR", null, inicial, null));
         return nova;
     }
 
@@ -81,8 +84,8 @@ public class ServicoReservas {
         verificarDisponibilidade(atual.getRecurso().id(), inicio, fim, atual.getId());
         Reserva nova = new Reserva(atual.getId(), atual.getSolicitante(), atual.getRecurso(),
                 inicio, fim, EstadoReserva.SOLICITADA);
-        substituir(nova);
-        registrarEvento(nova.getId(), ator, "ALTERAR", EstadoReserva.SOLICITADA, EstadoReserva.SOLICITADA, null);
+        armazenamento.atualizarReserva(nova,
+                evento(nova.getId(), ator, "ALTERAR", EstadoReserva.SOLICITADA, EstadoReserva.SOLICITADA, null), true);
         return nova;
     }
 
@@ -99,8 +102,7 @@ public class ServicoReservas {
             // Decisão pendente de AMB-01: exclusão apenas em SOLICITADA; demais estados ficam bloqueados.
             throw new ErroAplicacao(409, "Exclusão permitida apenas em SOLICITADA");
         }
-        armazenadas.remove(atual);
-        registrarEvento(atual.getId(), ator, "EXCLUIR", atual.getEstado(), null, null);
+        armazenamento.removerReserva(atual.getId(), evento(atual.getId(), ator, "EXCLUIR", atual.getEstado(), null, null));
     }
 
     // ---------------------------------------------------------------- transições (RN-05, RN-06)
@@ -156,8 +158,9 @@ public class ServicoReservas {
         }
         Reserva nova = new Reserva(atual.getId(), atual.getSolicitante(), atual.getRecurso(),
                 atual.getInicio(), atual.getFim(), destino);
-        substituir(nova);
-        registrarEvento(nova.getId(), ator, "TRANSICIONAR", atual.getEstado(), destino, justificativa);
+        armazenamento.atualizarReserva(nova,
+                evento(nova.getId(), ator, "TRANSICIONAR", atual.getEstado(), destino, justificativa),
+                destino == EstadoReserva.APROVADA);
         return nova;
     }
 
@@ -195,7 +198,7 @@ public class ServicoReservas {
         if (manutencao.inicio() == null || manutencao.fim() == null || !manutencao.fim().isAfter(manutencao.inicio())) {
             throw new ErroAplicacao(400, "Período de manutenção inválido");
         }
-        manutencoesArmazenadas.add(manutencao);
+        armazenamento.inserirManutencao(manutencao);
     }
 
     public void criarBloqueio(Usuario ator, Manutencao bloqueio) {
@@ -206,16 +209,8 @@ public class ServicoReservas {
 
     public synchronized List<Reserva> pendentesDeAnalise(Usuario ator) {
         exigirPerfil(ator, Perfil.RESPONSAVEL);
-        return armazenadas.stream().filter(r -> r.getEstado() == EstadoReserva.SOLICITADA).toList();
-    }
-
-    public synchronized List<EventoAuditoria> eventosDe(Usuario ator, String reservaId) {
-        exigirAutenticado(ator);
-        Reserva r = buscarObrigatoria(reservaId);
-        if (!(ehDono(ator, r) || tem(ator, Perfil.RESPONSAVEL) || tem(ator, Perfil.ADMINISTRADOR))) {
-            throw new ErroAplicacao(403, "Sem permissão para consultar a auditoria desta reserva");
-        }
-        return auditoria.stream().filter(e -> e.reservaId().equals(reservaId)).toList();
+        return armazenamento.listarReservas().stream()
+                .filter(r -> r.getEstado() == EstadoReserva.SOLICITADA).toList();
     }
 
     /** Consulta uma reserva: dono, Responsável ou Administrador (RF-16). */
@@ -234,6 +229,15 @@ public class ServicoReservas {
         return reservasDoRecurso(recursoId);
     }
 
+    public synchronized List<EventoAuditoria> eventosDe(Usuario ator, String reservaId) {
+        exigirAutenticado(ator);
+        Reserva r = buscarObrigatoria(reservaId);
+        if (!(ehDono(ator, r) || tem(ator, Perfil.RESPONSAVEL) || tem(ator, Perfil.ADMINISTRADOR))) {
+            throw new ErroAplicacao(403, "Sem permissão para consultar a auditoria desta reserva");
+        }
+        return armazenamento.listarEventos().stream().filter(e -> e.reservaId().equals(reservaId)).toList();
+    }
+
     /** Auditoria é append-only: alteração é sempre recusada (RN-09.8). */
     public void alterarEvento(Usuario ator, EventoAuditoria evento, String novoValor) {
         throw new ErroAplicacao(405, "Auditoria é append-only: alteração proibida");
@@ -247,24 +251,28 @@ public class ServicoReservas {
     // ---------------------------------------------------------------- acesso interno aos demais serviços
 
     /** Insere uma reserva já existente no armazenamento (usado para preparar cenários de teste). */
-    public synchronized void registrarExistente(Reserva reserva) { armazenadas.add(reserva); }
+    public synchronized void registrarExistente(Reserva reserva) {
+        armazenamento.inserirReserva(reserva, null);
+    }
 
-    public synchronized void registrarManutencaoExistente(Manutencao manutencao) { manutencoesArmazenadas.add(manutencao); }
+    public synchronized void registrarManutencaoExistente(Manutencao manutencao) {
+        armazenamento.inserirManutencao(manutencao);
+    }
 
     public synchronized List<Reserva> reservasDoRecurso(String recursoId) {
-        return armazenadas.stream().filter(r -> r.getRecurso().id().equals(recursoId)).toList();
+        return armazenamento.listarReservas().stream().filter(r -> r.getRecurso().id().equals(recursoId)).toList();
     }
 
     synchronized Optional<Reserva> buscar(String id) {
-        return armazenadas.stream().filter(r -> r.getId().equals(id)).findFirst();
+        return armazenamento.buscarReserva(id);
     }
 
     synchronized List<Reserva> todas() {
-        return List.copyOf(armazenadas);
+        return armazenamento.listarReservas();
     }
 
     synchronized boolean temReservaAtiva(String recursoId) {
-        return armazenadas.stream()
+        return armazenamento.listarReservas().stream()
                 .anyMatch(r -> r.getRecurso().id().equals(recursoId) && ATIVAS.contains(r.getEstado()));
     }
 
@@ -281,13 +289,13 @@ public class ServicoReservas {
     }
 
     private boolean conflita(String recursoId, LocalDateTime inicio, LocalDateTime fim, String idIgnorado) {
-        boolean emManutencao = manutencoesArmazenadas.stream()
+        boolean emManutencao = armazenamento.listarManutencoes().stream()
                 .filter(m -> m.recursoId().equals(recursoId))
                 .anyMatch(m -> sobrepoe(m.inicio(), m.fim(), inicio, fim));
         if (emManutencao) {
             return true;
         }
-        return armazenadas.stream()
+        return armazenamento.listarReservas().stream()
                 .filter(r -> !r.getId().equals(idIgnorado))
                 .filter(r -> r.getRecurso().id().equals(recursoId))
                 .filter(r -> ATIVAS.contains(r.getEstado()))
@@ -327,18 +335,8 @@ public class ServicoReservas {
         return buscar(id).orElseThrow(() -> new ErroAplicacao(404, "Reserva não encontrada: " + id));
     }
 
-    private void substituir(Reserva nova) {
-        for (int i = 0; i < armazenadas.size(); i++) {
-            if (armazenadas.get(i).getId().equals(nova.getId())) {
-                armazenadas.set(i, nova);
-                return;
-            }
-        }
-        throw new ErroAplicacao(404, "Reserva não encontrada: " + nova.getId());
-    }
-
-    private void registrarEvento(String reservaId, Usuario ator, String acao,
-                                 EstadoReserva anterior, EstadoReserva novo, String justificativa) {
-        auditoria.add(new EventoAuditoria(reservaId, ator.id(), LocalDateTime.now(relogio), acao, anterior, novo, justificativa));
+    private EventoAuditoria evento(String reservaId, Usuario ator, String acao,
+                                   EstadoReserva anterior, EstadoReserva novo, String justificativa) {
+        return new EventoAuditoria(reservaId, ator.id(), LocalDateTime.now(relogio), acao, anterior, novo, justificativa);
     }
 }

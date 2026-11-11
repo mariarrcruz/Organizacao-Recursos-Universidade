@@ -831,7 +831,9 @@ Caminhos relativos à raiz do repositório. Teste de unidade = classe JUnit exis
 | RF-17 / RF-01 / RF-19 — códigos 401/403 pelo endpoint, token e mensagem de bloqueio na resposta | Anônimo 401, Solicitante/Administrador 403, mensagem de conflito em `bloqueio-manutencao.feature` e `aprovacao-bloqueio.feature` (via HTTP) | `src/test/resources/features/*.feature` | `src/test/java/com/organizacao/recursos/bdd/PassosReservas.java` | `22193df` (BDD); `0866679` (API) | Implementado via HTTP; validado localmente |
 | RF-01 — login por credenciais e fluxo ponta a ponta (cadastro, login, uso) | Sem cenário: não há endpoint de login nesta etapa; tokens são emitidos pelo `ServicoAutenticacao` no teste | — | — | — | **Pendente** (endpoint de login) |
 
-**Pendências desta rastreabilidade:** falta o endpoint de login por credenciais e o bootstrap de aplicação Spring Boot (ADR-001). Os itens sem cenário no documento BDD (Q1, Q5, Q7 e a parte de horário de Q8) estão cobertos só por teste de unidade, como indicado na coluna de situação.
+**Persistência (ADR-016, ADR-017):** reservas, manutenções e auditoria são gravadas em PostgreSQL. Os cenários BDD rodam contra o banco; a exclusividade de horário é garantida pela restrição `EXCLUDE` mais trava por recurso; a auditoria é somente inserção (trigger). Concorrência verificada por `ConcorrenciaReservaPostgresTest` e `ConcorrenciaReservaHttpPostgresTest`, com a prova por consulta ao banco.
+
+**Pendências desta rastreabilidade:** falta o endpoint de login por credenciais, o bootstrap de aplicação Spring Boot (ADR-001) e um serviço persistente de cadastro de recursos e usuários. Os itens sem cenário no documento BDD (Q1, Q5, Q7 e a parte de horário de Q8) estão cobertos só por teste de unidade, como indicado na coluna de situação.
 
 ### 5.4 Testes de regressão para defeitos corrigidos
 

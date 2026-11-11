@@ -2,15 +2,11 @@ package com.organizacao.recursos.persistencia;
 
 import com.organizacao.recursos.dominio.ErroAplicacao;
 import com.organizacao.recursos.dominio.TipoRecurso;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
@@ -39,17 +35,7 @@ public class RepositorioReservasPostgres {
 
     /** Cria as tabelas a partir de db/schema.sql (idempotente). */
     public void criarEsquema() {
-        String script = lerRecurso("/db/schema.sql");
-        try (Connection c = conexao(); Statement st = c.createStatement()) {
-            for (String comando : script.split(";")) {
-                String limpo = comando.replaceAll("(?m)^--.*$", "").trim();
-                if (!limpo.isEmpty()) {
-                    st.execute(limpo);
-                }
-            }
-        } catch (SQLException e) {
-            throw new IllegalStateException("Falha ao criar esquema", e);
-        }
+        new ArmazenamentoPostgres(url, usuario, senha).criarEsquema();
     }
 
     public void registrarRecurso(String recursoId, TipoRecurso tipo) {
@@ -134,16 +120,5 @@ public class RepositorioReservasPostgres {
 
     private Connection conexao() throws SQLException {
         return DriverManager.getConnection(url, usuario, senha);
-    }
-
-    private static String lerRecurso(String caminho) {
-        try (InputStream in = RepositorioReservasPostgres.class.getResourceAsStream(caminho)) {
-            if (in == null) {
-                throw new IllegalStateException("Recurso não encontrado: " + caminho);
-            }
-            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new IllegalStateException("Falha ao ler " + caminho, e);
-        }
     }
 }

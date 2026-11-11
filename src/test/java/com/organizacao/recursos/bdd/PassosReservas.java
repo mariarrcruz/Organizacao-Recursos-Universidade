@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.organizacao.recursos.api.ManutencaoController;
 import com.organizacao.recursos.api.ReservasController;
 import com.organizacao.recursos.api.TratadorErros;
+import com.organizacao.recursos.persistencia.ArmazenamentoPostgres;
 import com.organizacao.recursos.dominio.EstadoReserva;
 import com.organizacao.recursos.dominio.Perfil;
 import com.organizacao.recursos.dominio.Recurso;
@@ -72,7 +73,8 @@ public class PassosReservas {
     private static final String MENSAGEM_CONFLITO = "Conflito de horário";
 
     private final RelogioAjustavel relogio = new RelogioAjustavel(LocalDateTime.of(2026, 11, 20, 10, 30));
-    private final ServicoReservas servico = new ServicoReservas(relogio);
+    private final ArmazenamentoPostgres armazenamento = BancoDeTestes.novoArmazenamento();
+    private final ServicoReservas servico = new ServicoReservas(relogio, armazenamento);
     private final Map<String, Usuario> usuarios = new HashMap<>();
     private final Map<String, Recurso> recursos = new HashMap<>();
     private final ObjectMapper json = new ObjectMapper();
@@ -93,14 +95,14 @@ public class PassosReservas {
     @Dado("que o recurso {string} está com status {word}")
     public void recursoComStatus(String recursoId, String status) {
         Recurso atual = recurso(recursoId);
-        recursos.put(recursoId, new Recurso(recursoId, atual.tipo(), atual.nome(), atual.localizacao(),
+        atualizarRecurso(new Recurso(recursoId, atual.tipo(), atual.nome(), atual.localizacao(),
                 atual.capacidade(), atual.restrito(), StatusRecurso.valueOf(status), atual.competencias()));
     }
 
     @E("que {string} está marcado como restrito")
     public void recursoRestrito(String recursoId) {
         Recurso atual = recurso(recursoId);
-        recursos.put(recursoId, new Recurso(recursoId, atual.tipo(), atual.nome(), atual.localizacao(),
+        atualizarRecurso(new Recurso(recursoId, atual.tipo(), atual.nome(), atual.localizacao(),
                 atual.capacidade(), true, atual.status(), atual.competencias()));
     }
 
@@ -506,8 +508,17 @@ public class PassosReservas {
     }
 
     private Recurso recurso(String id) {
-        return recursos.computeIfAbsent(id, r -> new Recurso(r, TipoRecurso.SALA, "Recurso " + r, "BLOCO_A", 30,
-                true, StatusRecurso.DISPONIVEL, Set.of()));
+        if (!recursos.containsKey(id)) {
+            atualizarRecurso(new Recurso(id, TipoRecurso.SALA, "Recurso " + id, "BLOCO_A", 30,
+                    true, StatusRecurso.DISPONIVEL, Set.of()));
+        }
+        return recursos.get(id);
+    }
+
+    /** Atualiza o cadastro em memória (para o controlador) e no PostgreSQL (para a reserva ler o recurso). */
+    private void atualizarRecurso(Recurso recurso) {
+        recursos.put(recurso.id(), recurso);
+        armazenamento.gravarRecurso(recurso);
     }
 
     /** Monta um corpo JSON a partir de pares chave/valor; valores nulos são enviados como null. */
