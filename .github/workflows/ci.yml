@@ -39,8 +39,12 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         # Roda depois do verify, que já gerou target/classes, target/test-classes e target/site/jacoco/jacoco.xml.
+        # SONAR_HOST_URL aponta para um SonarQube próprio; sem a variável, usa o SonarCloud.
+        # Um SonarQube em localhost não é alcançável pelos runners hospedados do GitHub: nesse caso
+        # o job precisa rodar em self-hosted runner dentro da mesma rede.
         run: >-
           ./mvnw -B org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar
+          -Dsonar.host.url=${{ vars.SONAR_HOST_URL || 'https://sonarcloud.io' }}
           -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
           -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
 
