@@ -112,8 +112,8 @@ class RF15ControleAcessoPerfilTest {
         }
 
         @Test
-        @DisplayName("RF-15.S.8 — Ver relatórios gerenciais (dashboard): esclarecer")
-        void rf15_s8_verRelatoriosGerenciais() {
+        @DisplayName("RF-15.S.8 — Ver relatórios gerenciais (dashboard): negado (403)")
+        void rf15_s8_solicitanteNaoVeRelatoriosGerenciais() {
             // Arrange
             // Act & Assert
             assertErro(403, () -> relatorios.utilizacaoPorRecurso(alice, DIA, DIA));
@@ -198,8 +198,8 @@ class RF15ControleAcessoPerfilTest {
         }
 
         @Test
-        @DisplayName("RF-15.R.7 — Criar reserva própria: esclarecer escopo")
-        void rf15_r7_criarReservaPropria() {
+        @DisplayName("RF-15.R.7 — Responsável cria reserva própria em recurso livre: permitido (APROVADA)")
+        void rf15_r7_responsavelCriaReservaPropria() {
             // Arrange
             // Act
             Reserva r = reservas.solicitar(resp, sala, t("10:00"), t("11:00"));
@@ -325,8 +325,8 @@ class RF15ControleAcessoPerfilTest {
         }
 
         @Test
-        @DisplayName("RF-15.A.12 — Bypass de aprovação em recurso restrito: negado ou escopo?")
-        void rf15_a12_bypassDeAprovacao() {
+        @DisplayName("RF-15.A.12 — Administrador não aprova reserva de recurso restrito: negado (403; aprovação é do Responsável, RN-07)")
+        void rf15_a12_administradorNaoAprovaRecursoRestrito() {
             // Arrange
             Reserva solicitada = reserva("R-A12", alice, salaRestrita, "10:00", "11:00", EstadoReserva.SOLICITADA);
             reservas.registrarExistente(solicitada);

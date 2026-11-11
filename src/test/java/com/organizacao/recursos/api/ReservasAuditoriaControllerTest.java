@@ -2,7 +2,9 @@ package com.organizacao.recursos.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 import com.organizacao.recursos.dominio.Perfil;
 import com.organizacao.recursos.dominio.Recurso;
@@ -77,5 +79,20 @@ class ReservasAuditoriaControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("adm", "ADMINISTRADOR")))
                 .andReturn().getResponse().getStatus();
         assertEquals(200, status);
+    }
+
+    /** RN-09: o registro de auditoria não pode ser alterado nem apagado pela API (ADR-005). */
+    @Test
+    void auditoriaNaoPodeSerAlteradaNemApagadaPelaApi() throws Exception {
+        String id = novaReserva();
+        String admin = token("adm", "ADMINISTRADOR");
+        int alterada = mvc.perform(put("/reservas/" + id + "/auditoria")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + admin))
+                .andReturn().getResponse().getStatus();
+        int apagada = mvc.perform(delete("/reservas/" + id + "/auditoria")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + admin))
+                .andReturn().getResponse().getStatus();
+        assertEquals(405, alterada);
+        assertEquals(405, apagada);
     }
 }

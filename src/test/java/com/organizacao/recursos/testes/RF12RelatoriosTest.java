@@ -92,8 +92,8 @@ class RF12RelatoriosTest {
     }
 
     @Test
-    @DisplayName("RF-12.6 — Relatório gerencial por Solicitante: esclarecer acesso")
-    void rf12_6_solicitanteConsultaRelatorioGerencial() {
+    @DisplayName("RF-12.6 — Relatório gerencial por Solicitante: negado (403)")
+    void rf12_6_solicitanteNaoConsultaRelatorioGerencial() {
         // Arrange
         reservas.registrarExistente(reserva("R1", alice, sala, "10:00", "11:00", EstadoReserva.APROVADA));
         // Act & Assert
@@ -109,7 +109,7 @@ class RF12RelatoriosTest {
     }
 
     @Test
-    @DisplayName("RF-12.8 — Volume alto (1000 reservas): resposta em menos de 5 s (RNF-05)")
+    @DisplayName("RF-12.8 — Volume alto (1000 reservas): serviço em memória responde em menos de 5 s (RNF-05; desempenho na aplicação é medido em PEN-07)")
     void rf12_8_relatorioComVolumeAltoRespondeEmMenosDeCincoSegundos() {
         // Arrange
         for (int i = 0; i < 1000; i++) {

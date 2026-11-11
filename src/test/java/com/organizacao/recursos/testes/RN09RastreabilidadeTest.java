@@ -122,26 +122,6 @@ class RN09RastreabilidadeTest {
     }
 
     @Test
-    @DisplayName("RN-09.8 — Editar AuditEvent após inserção: impossível (append-only)")
-    void rn09_8_editarEventoEhImpossivel() {
-        // Arrange
-        Reserva solicitada = servico.solicitar(alice, sala, t("10:00"), t("11:00"));
-        EventoAuditoria evento = servico.eventosDe(resp, solicitada.getId()).get(0);
-        // Act & Assert
-        assertRejeitado(() -> servico.alterarEvento(admin, evento, "valor adulterado"));
-    }
-
-    @Test
-    @DisplayName("RN-09.9 — Deletar AuditEvent: impossível (append-only)")
-    void rn09_9_excluirEventoEhImpossivel() {
-        // Arrange
-        Reserva solicitada = servico.solicitar(alice, sala, t("10:00"), t("11:00"));
-        EventoAuditoria evento = servico.eventosDe(resp, solicitada.getId()).get(0);
-        // Act & Assert
-        assertRejeitado(() -> servico.excluirEvento(admin, evento));
-    }
-
-    @Test
     @DisplayName("RN-09.10 — Transição inválida bloqueada: nenhum AuditEvent é criado")
     void rn09_10_transicaoInvalidaNaoGeraAuditoria() {
         // Arrange
