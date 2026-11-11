@@ -189,10 +189,11 @@ public class ReservasController {
         }
     }
 
-    public record EventoJson(String acao, String atorId, String estadoAnterior, String estadoNovo,
+    public record EventoJson(String acao, String atorId, String instante, String estadoAnterior, String estadoNovo,
                              String justificativa) {
         static EventoJson de(EventoAuditoria e) {
             return new EventoJson(e.acao(), e.atorId(),
+                    java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(e.instante()),
                     e.estadoAnterior() == null ? null : e.estadoAnterior().name(),
                     e.estadoNovo() == null ? null : e.estadoNovo().name(), e.justificativa());
         }
