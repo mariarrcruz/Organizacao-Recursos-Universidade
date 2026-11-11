@@ -41,6 +41,9 @@ public class RecursosController {
         if (corpo.id() == null || corpo.id().isBlank()) {
             throw new ErroAplicacao(400, "Informe o id do recurso (campo id)");
         }
+        if (corpo.capacidade() < 0) {
+            throw new ErroAplicacao(400, "Capacidade não pode ser negativa (campo capacidade)");
+        }
         TipoRecurso tipo = enumDe(TipoRecurso.class, corpo.tipo(), "tipo", "SALA, PROFESSOR, MATERIAL ou EQUIPAMENTO");
         StatusRecurso status = enumDe(StatusRecurso.class, corpo.status(), "status", "DISPONIVEL, INDISPONIVEL ou MANUTENCAO");
         armazenamento.gravarRecurso(new Recurso(corpo.id(), tipo, corpo.nome(),
