@@ -14,6 +14,8 @@
     <maven.compiler.target>17</maven.compiler.target>
     <maven.compiler.release>17</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <wiremock.version>3.9.1</wiremock.version>
+    <jackson.version>2.17.2</jackson.version>
     <!-- Metas do gate JaCoCo (fase verify). Sobrescrevíveis por -D para validar a falha. -->
     <jacoco.line.minimum>0.80</jacoco.line.minimum>
     <jacoco.branch.minimum>0.70</jacoco.branch.minimum>
@@ -24,10 +26,23 @@
   </properties>
 
   <dependencies>
+    <!-- Leitura do contrato JSON da API externa de calendário institucional. -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>5.12.2</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- WireMock (RNF-08): simula integrações HTTP externas. Escopo de teste; nunca vai ao artefato. -->
+    <dependency>
+      <groupId>org.wiremock</groupId>
+      <artifactId>wiremock-standalone</artifactId>
+      <version>${wiremock.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
