@@ -270,6 +270,16 @@ public class ServicoReservas {
         return sobrepoeManutencao(recursoId, inicio, fim) || sobrepoeReserva(recursoId, inicio, fim, null);
     }
 
+    /**
+     * Consulta de disponibilidade: livre de reservas ativas e de manutenção no intervalo. Qualquer usuário
+     * autenticado consulta; o retorno não identifica reservas de terceiros.
+     */
+    public synchronized boolean disponivel(Usuario ator, String recursoId, LocalDateTime inicio, LocalDateTime fim) {
+        exigirAutenticado(ator);
+        validarPeriodo(inicio, fim);
+        return !temConflito(recursoId, inicio, fim);
+    }
+
     /** Tentativas recusadas por sobreposição com reserva (conflitos evitados, RF-12). */
     synchronized List<ConflitoReserva> conflitosRegistrados() {
         return armazenamento.listarConflitos();
