@@ -1,10 +1,16 @@
 package com.organizacao.recursos;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import org.junit.jupiter.api.Test;
+import com.organizacao.recursos.dominio.Recurso;
+import com.organizacao.recursos.dominio.StatusRecurso;
+import com.organizacao.recursos.dominio.TipoRecurso;
+import com.organizacao.recursos.persistencia.ArmazenamentoPostgres;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -38,19 +44,20 @@ class AplicacaoContextoTest {
     @Autowired
     private MockMvc mvc;
 
+    @Autowired
+    private ArmazenamentoPostgres armazenamento;
+
     @Test
     void aplicacaoAtendeSolicitacaoDeReservaComBancoReal() throws Exception {
-        String token = mvc.perform(post("/dev/tokens").contentType(MediaType.APPLICATION_JSON)
+        // D4: o token de laboratório não emite ADMINISTRADOR, então o recurso é gravado direto no banco real.
+        int tokenAdmin = mvc.perform(post("/dev/tokens").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"sub\":\"adm\",\"perfis\":[\"ADMINISTRADOR\"]}"))
-                .andReturn().getResponse().getContentAsString()
-                .replaceAll(".*\"token\":\"([^\"]+)\".*", "$1");
-
-        int cadastro = mvc.perform(post("/recursos").header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"id\":\"SALA-CTX\",\"tipo\":\"SALA\",\"nome\":\"Sala\",\"localizacao\":\"A\","
-                                + "\"capacidade\":10,\"restrito\":false,\"status\":\"DISPONIVEL\",\"competencias\":[]}"))
                 .andReturn().getResponse().getStatus();
-        assertEquals(201, cadastro);
+        assertEquals(400, tokenAdmin);
+
+        armazenamento.gravarRecurso(new Recurso("SALA-CTX", TipoRecurso.SALA, "Sala", "A", 10, false,
+                StatusRecurso.DISPONIVEL, Set.of()));
+        assertTrue(armazenamento.buscarRecurso("SALA-CTX").isPresent());
 
         int semToken = mvc.perform(get("/reservas/inexistente")).andReturn().getResponse().getStatus();
         assertEquals(401, semToken);
