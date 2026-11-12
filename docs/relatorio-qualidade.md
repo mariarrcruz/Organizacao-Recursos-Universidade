@@ -152,7 +152,7 @@ Fontes: `docs/performance/resultado-01.md` (rodada anterior, JDK 17), `resultado
 
 ### 4.7 CI do PR
 
-PR #14 (`feat/front-login-carga-java21` → `main`). Runs: `43315068599` (reprovou o Sonar por S2259) e `43315686130` (sucesso, `Maven verify` e SonarCloud concluídos, quality gate OK).
+PR #14 (`feat/front-login-carga-java21` → `main`). Runs: `43315068599` (reprovou o Sonar por S2259), `43315686130` (sucesso, gate OK) e `43321276037` (commit `da22eba`, correção de desempenho: sucesso, gate OK, 0 issues abertos de bug, vulnerabilidade ou code smell, cobertura do código novo 82,1 %).
 
 ## 5. Defeitos
 
