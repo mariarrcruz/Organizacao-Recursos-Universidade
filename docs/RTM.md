@@ -1099,10 +1099,10 @@ Situação em 2026-11-12, após a entrega do login, do catálogo, das movimenta�
 | RNF-05 / RNF-10 | TDD e BDD em ≥ 1 funcionalidade | Prática | Média | reservations | Ausência de prática | TG-09 · `src/test/resources/features/`; `bdd/RodarCenariosTest`; commits `test(red)`/`feat(green)` | Funcionalidade com TDD/BDD | Histórico de commits e features | Implementado |
 | Especificação §5 (end-to-end) / TG-05 | Testes end-to-end dos fluxos principais | Qualidade | Alta | Suíte de testes | Quebra entre camadas | TG-05 · `e2e/FluxoEndToEndTest` (4 cenários) | Fluxo completo com estados esperados e casos negativos | Relatório de execução | Implementado |
 | RN-04 / RF-08 sob concorrência | Reserva em recurso com manutenção registrada é recusada mesmo com requisições simultâneas | Funcional | Crítica | reservations, maintenance | Reserva em horário bloqueado | TG-07 · `persistencia/ConcorrenciaManutencaoReservaPostgresTest` (`reservasSimultaneasEmManutencaoSaoRecusadas`) | 20 reservas simultâneas recusadas; nenhuma gravada | Estado final do banco | Implementado (teste novo nesta entrega) |
-| DEF-007 / DEF-008 / DEF-009 / DEF-010 | Regressão dos defeitos registrados | Qualidade | Média | tests | Reincidência | TG-10 · `CoberturaRiscoReservasTest.pendentesSoDeRecursoVinculado` (DEF-007); `e2e/FluxoEndToEndTest.responsavelSemVinculoNaoAprova` (DEF-007); `RF10MovimentacoesMaterialTest` (DEF-010) | Defeito corrigido com teste | Registros em `docs/defeitos/` | DEF-007, DEF-009 e DEF-010 corrigidos; DEF-008 aberto |
-| RNF-03-P1 (proposta) | p95 da consulta de disponibilidade ≤ 500 ms | Não funcional | Alta | reservations | Lentidão sob carga | TG-11 · `perf/reservas.jmx`; `scripts/analisar_jtl.py` | p95 ≤ 500 ms (`docs/performance/rnf.md` §2) | `docs/performance/resultado-02.md` | NÃO ATENDIDO nas rodadas 02 a 04 (870 a 950 ms); DEF-008 aberto |
-| RNF-04-P1 (proposta) | p95 da criação de reserva ≤ 500 ms | Não funcional | Alta | reservations | Lentidão sob carga | TG-11 · `perf/reservas.jmx` | p95 ≤ 500 ms | `docs/performance/resultado-02.md` | NÃO ATENDIDO nas rodadas 02 a 04 (906 a 995 ms); DEF-008 aberto |
-| RNF-06-P1 / RNF-06-P2 (proposta) | Taxa de erro < 1 % e nenhuma resposta fora de {201, 409} | Não funcional | Alta | reservations | Erro sob carga | TG-11 · `perf/reservas.jmx` | Erro < 1 %; nenhum 5xx | `docs/performance/resultado-02.md` | Atendido nas rodadas 02 a 04 (erro 0 %, só 201/409); critério de latência não atendido |
+| DEF-007 / DEF-008 / DEF-009 / DEF-010 | Regressão dos defeitos registrados | Qualidade | Média | tests | Reincidência | TG-10 · `CoberturaRiscoReservasTest.pendentesSoDeRecursoVinculado` (DEF-007); `e2e/FluxoEndToEndTest.responsavelSemVinculoNaoAprova` (DEF-007); `RF10MovimentacoesMaterialTest` (DEF-010) | Defeito corrigido com teste | Registros em `docs/defeitos/` | DEF-007 a DEF-010 corrigidos |
+| RNF-03-P1 (proposta) | p95 da consulta de disponibilidade ≤ 500 ms | Não funcional | Alta | reservations | Lentidão sob carga | TG-11 · `perf/reservas.jmx`; `scripts/analisar_jtl.py` | p95 ≤ 500 ms (`docs/performance/rnf.md` §2) | `docs/performance/resultado-03.md` | Atendido nas rodadas 05 a 07 (p95 3 ms); DEF-008 corrigido |
+| RNF-04-P1 (proposta) | p95 da criação de reserva ≤ 500 ms | Não funcional | Alta | reservations | Lentidão sob carga | TG-11 · `perf/reservas.jmx` | p95 ≤ 500 ms | `docs/performance/resultado-03.md` | Atendido nas rodadas 05 a 07 (p95 38 a 39 ms); DEF-008 corrigido |
+| RNF-06-P1 / RNF-06-P2 (proposta) | Taxa de erro < 1 % e nenhuma resposta fora de {201, 409} | Não funcional | Alta | reservations | Erro sob carga | TG-11 · `perf/reservas.jmx` | Erro < 1 %; nenhum 5xx | `docs/performance/resultado-03.md` | Atendido nas rodadas 05 a 07 (erro 0 %, só 201/409) |
 
 ---
 
@@ -1112,11 +1112,11 @@ Situação em 2026-11-12, após a entrega do login, do catálogo, das movimenta�
 - [x] Estratégia e documentação de testes definida (TG-01 a TG-11); TG-05 (E2E) implementado — 15 % da avaliação
 - [x] Qualidade dos testes automatizados (asserções de negócio; nenhum mock de persistência) — 25 % da avaliação
 - [x] CI, cobertura (JaCoCo 80/70) e análise estática (SonarCloud 0 bugs e 0 vulnerabilidades) — 15 % da avaliação; PR #14, quality gate OK
-- [ ] Desempenho, segurança e robustez (JMeter, LGPD, menor privilégio) — 10 % da avaliação; **carga não atende ao p95 (DEF-008)**
-- [x] Rastreabilidade e gestão de defeitos (RTM, DEF-001 a DEF-010, DEF-008 aberto) — 10 % da avaliação
+- [x] Desempenho, segurança e robustez (JMeter, LGPD, menor privilégio) — 10 % da avaliação; carga atendida nas rodadas 05 a 07 (DEF-008 corrigido); LGPD não avaliada
+- [x] Rastreabilidade e gestão de defeitos (RTM, DEF-001 a DEF-010, todos corrigidos) — 10 % da avaliação
 - [ ] Organização, apresentação e autoria — 10 % da avaliação; apresentação não avaliada aqui
 - [x] Limitadores de nota mapeados: aplicação executa, pipeline presente, autorização correta, sem dupla reserva
-- [x] Nenhuma proposta apresentada como decisão confirmada (propostas de desempenho marcadas como não atendidas)
+- [x] Nenhuma proposta apresentada como decisão confirmada (desempenho medido em máquina sem ambiente de referência, ressalva registrada em `resultado-03.md`)
 - [x] Nenhum teste planejado apresentado como executado
 - [x] Nenhum requisito, dado, integração ou resultado inventado
 - [x] Documentos atualizados nesta entrega, por solicitação do grupo (o checklist original pedia que não fossem alterados)

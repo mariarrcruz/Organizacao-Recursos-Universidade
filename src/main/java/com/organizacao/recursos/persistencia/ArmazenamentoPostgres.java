@@ -15,11 +15,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -49,10 +51,30 @@ public final class ArmazenamentoPostgres implements Armazenamento {
     private final String usuario;
     private final String senha;
 
+    /**
+     * Um pool por URL e usuário, compartilhado por todas as instâncias. Assim, várias instâncias
+     * (por exemplo, uma por nó nos testes de concorrência) usam o mesmo conjunto de conexões.
+     */
+    private static final java.util.Map<String, HikariDataSource> POOLS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private final HikariDataSource pool;
+
     public ArmazenamentoPostgres(String url, String usuario, String senha) {
         this.url = url;
         this.usuario = usuario;
         this.senha = senha;
+        this.pool = POOLS.computeIfAbsent(url + "|" + usuario, chave -> criarPool(url, usuario, senha));
+    }
+
+    private static HikariDataSource criarPool(String url, String usuario, String senha) {
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(url);
+        config.setUsername(usuario);
+        config.setPassword(senha);
+        config.setMaximumPoolSize(20);
+        config.setMinimumIdle(2);
+        config.setPoolName("organizacao-" + usuario);
+        return new HikariDataSource(config);
     }
 
     /** Cria as tabelas, a extensão, o trigger de auditoria (idempotente). */
@@ -515,7 +537,7 @@ public final class ArmazenamentoPostgres implements Armazenamento {
     }
 
     private Connection conectar() throws SQLException {
-        return DriverManager.getConnection(url, usuario, senha);
+        return pool.getConnection();
     }
 
     private static String lerEsquema() {

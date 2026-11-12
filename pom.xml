@@ -96,6 +96,11 @@
       <artifactId>postgresql</artifactId>
       <version>${postgresql.version}</version>
     </dependency>
+    <!-- Pool de conexões do armazenamento PostgreSQL (DEF-008): evita abrir uma conexão por operação. -->
+    <dependency>
+      <groupId>com.zaxxer</groupId>
+      <artifactId>HikariCP</artifactId>
+    </dependency>
     <!-- Testcontainers: PostgreSQL real em contêiner nos testes de concorrência. -->
     <dependency>
       <groupId>org.testcontainers</groupId>

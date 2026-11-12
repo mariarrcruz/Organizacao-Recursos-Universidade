@@ -136,18 +136,19 @@ Requisitos críticos = os marcados "Crítica" em `docs/RTM.md` §1.2, mais RNF-0
 
 ### 4.6 Desempenho (meta de referência: p95 ≤ 500 ms, erro < 1 %)
 
-Fonte: `docs/performance/resultado-01.md` (rodada anterior, JDK 17) e `docs/performance/resultado-02.md` (três rodadas, versão atual).
+Fontes: `docs/performance/resultado-01.md` (rodada anterior, JDK 17), `resultado-02.md` (rodadas 02 a 04, antes da correção) e `resultado-03.md` (rodadas 05 a 07, após a correção do DEF-008).
 
 | Rodada | Consulta (p95) | Criação (p95) | Erro | Veredito |
 |---|---:|---:|---:|---|
 | 01 (versão anterior) | 326 ms | 335 ms | 0 % | INCONCLUSIVO |
-| 02 | 870 ms | 906 ms | 0 % | **NÃO ATENDIDO** |
-| 03 | 880 ms | 909 ms | 0 % | **NÃO ATENDIDO** |
-| 04 | 950 ms | 995 ms | 0 % | **NÃO ATENDIDO** |
+| 02 a 04 (antes da correção) | 870 a 950 ms | 906 a 995 ms | 0 % | NÃO ATENDIDO |
+| 05 | 3 ms | 39 ms | 0 % | ATENDIDO |
+| 06 | 3 ms | 38 ms | 0 % | ATENDIDO |
+| 07 | 3 ms | 39 ms | 0 % | ATENDIDO |
 
-**Causa identificada:** operações de reserva serializadas por `synchronized` com I/O dentro do lock, e uma conexão JDBC aberta por operação (DEF-008, aberto). O grupo decidiu não tratar desempenho nesta entrega. O requisito de desempenho **não está atendido**.
+**Causa corrigida (DEF-008):** o serviço de reservas serializava todas as operações com um monitor Java em volta de I/O de banco, e cada operação abria uma conexão nova. A correção remove o monitor, usa pool de conexões e deixa a atomicidade com o armazenamento (transação, lock consultivo e `EXCLUDE` no PostgreSQL). Os testes de concorrência e de regra continuam passando.
 
-Erro real 0 % e respostas somente 201 ou 409 nas três rodadas: os critérios de erro (RNF-06-P1 e P2) estão atendidos.
+**Ressalva:** as rodadas 05 a 07 foram feitas na mesma máquina de desenvolvimento, com duas IDEs Java abertas. Não é o ambiente de referência do `rnf.md` §5. O requisito está atendido nessa medição, mas o limite não deve ser tratado como fixado até uma medição em ambiente de referência.
 
 ### 4.7 CI do PR
 
@@ -166,11 +167,11 @@ Fonte: `docs/defeitos/`.
 | DEF-005 — Capacidade negativa aceita | Média | Corrigido | `ValidacaoEntradaTest` |
 | DEF-006 — Campo ausente sem mensagem clara | Média | Corrigido | `ValidacaoEntradaTest.inicioAusente`, `recursoAusente` |
 | DEF-007 — Responsável vê solicitações de recursos não vinculados | Alta | Corrigido | `CoberturaRiscoReservasTest.pendentesSoDeRecursoVinculado`; `FluxoEndToEndTest.responsavelSemVinculoNaoAprova` |
-| DEF-008 — Operações de reserva serializadas: latência alta sob carga | Alta (desempenho) | **Aberto** | Rodadas de carga (seção 4.6) |
+| DEF-008 — Operações de reserva serializadas: latência alta sob carga | Alta (desempenho) | Corrigido | Rodadas 05 a 07 (`resultado-03.md`) |
 | DEF-009 — README descreve funcionalidades inexistentes | Média | Corrigido | Verificação manual; README e `docs/api.md` |
 | DEF-010 — Sonar S8700: duração entre datas sem fuso | Média (MAJOR) | Corrigido; SonarCloud do PR #14 sem bugs | `RF10MovimentacoesMaterialTest` |
 
-**Totais:** 10 defeitos documentados. Abertos: 1 (DEF-008, desempenho).
+**Totais:** 10 defeitos documentados. Abertos: 0.
 
 **Limite:** o registro cobre defeitos encontrados por testes, por mutação, por análise de código e pelas rodadas de carga. Não há contagem de defeitos de produção.
 
@@ -178,7 +179,7 @@ Fonte: `docs/defeitos/`.
 
 | Risco | Evidência | Impacto | Mitigação |
 |---|---|---|---|
-| Desempenho acima da meta sob carga | Seção 4.6; DEF-008 | Alto para o requisito RNF-03/RNF-04 | Nenhuma nesta entrega |
+| Desempenho medido fora do ambiente de referência | Seção 4.6 | Limite pode mudar numa medição controlada | Repetir em ambiente de referência |
 | Usuários e movimentações em memória | `docs/api.md`; README | Perda de dados ao reiniciar | Decisão do grupo, documentada |
 | Interface não verificada visualmente | Seção 2.2 | Possível problema de layout em telas reais | Teste de conteúdo e end-to-end |
 | Mutação de 2026-11-11 não repetida | Seção 4.3 | Regressão possível não detectada pela mutação | Testes de regressão e E2E cobrem os mesmos fluxos |
@@ -186,11 +187,11 @@ Fonte: `docs/defeitos/`.
 
 ## 7. Recomendação
 
-**Apresentar como entrega com ressalvas explícitas**, por causa do desempenho. O CI e o quality gate do SonarCloud passam no PR #14:
+**Apresentar como entrega**, com as ressalvas abaixo. O CI e o quality gate do SonarCloud passam no PR #14:
 
 1. Login, autorização por perfil, catálogo, reservas, aprovação, movimentações, notificações, interface e end-to-end estão implementados e testados.
 2. Dupla reserva e reserva em manutenção são protegidas e testadas sob concorrência.
-3. O requisito de desempenho (p95 ≤ 500 ms) **não é atendido**, com causa identificada (DEF-008).
+3. O requisito de desempenho (p95 ≤ 500 ms) é atendido nas rodadas 05 a 07, em máquina sem ambiente de referência (seção 4.6).
 4. Usuários e movimentações são mantidos em memória.
 
-**Próximos passos recomendados, se houver tempo:** tratar DEF-008 (remover I/O do lock e usar pool de conexões), repetir as três rodadas em ambiente de referência, e persistir usuários e movimentações.
+**Próximos passos recomendados:** repetir as três rodadas em ambiente de referência fixo e persistir usuários e movimentações.

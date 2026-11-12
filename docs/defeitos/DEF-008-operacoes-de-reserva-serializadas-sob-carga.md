@@ -1,6 +1,6 @@
 # DEF-008 — Operações de reserva serializadas: latência alta sob carga
 
-**Status:** aberto (decisão do grupo: fora do escopo desta entrega; ver `docs/performance/resultado-02.md`)
+**Status:** corrigido (rodadas 05 a 07, `docs/performance/resultado-03.md`)
 **Data da detecção:** 2026-11-12, rodadas JMeter 02, 03 e 04
 **Severidade:** alta para o requisito de desempenho (RNF-03-P1 e RNF-04-P1, p95 ≤ 500 ms); sem impacto em integridade
 **Regras afetadas:** RNF-03, RNF-04, RNF-06 (desempenho sob carga)
@@ -26,6 +26,10 @@
 
 A integridade não depende desse lock no caminho PostgreSQL (há constraint `EXCLUDE` e advisory lock por recurso), o que torna a serialização desnecessária nesse caminho.
 
-## Correção prevista (não executada)
+## Correção
 
-Remover I/O do monitor Java no caminho PostgreSQL e introduzir pool de conexões. Depois, repetir as três rodadas com a máquina em condição de referência.
+1. Removido o monitor Java (`synchronized`) dos métodos de `ServicoReservas`; a atomicidade fica com o armazenamento (transação, lock consultivo e `EXCLUDE` no PostgreSQL).
+2. `ArmazenamentoMemoria.inserirReserva` passou a recusar sobreposição, cumprindo o contrato da porta.
+3. Pool HikariCP compartilhado por URL e usuário em `ArmazenamentoPostgres`.
+
+Resultado: consulta p95 de 3 ms e criação p95 de 38 a 39 ms, nas rodadas 05 a 07. Testes de concorrência e de regra continuam passando. Ver `docs/performance/resultado-03.md`, com a ressalva de que a medição não foi feita em ambiente de referência.

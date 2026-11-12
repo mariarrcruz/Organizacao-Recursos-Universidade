@@ -6,7 +6,7 @@
 **Tecnologias-base:** Java, Spring Boot, Spring Security, H2, HTML e CSS\
 **Escopo:** Aplicação local, sem infraestrutura de produção externa
 
-> **Estado de implementação (2026-11-12).** Este documento descreve a arquitetura proposta. O que está implementado: monolito modular Spring Boot 3.2.5 em Java 21; login por senha com JWT de 1 hora (`POST /auth/login`); PostgreSQL atrás de porta de armazenamento; auditoria append-only; notificações simuladas em log e memória; interface web em `/`. Divergências conhecidas: refresh token (seção 6.4) existe no serviço, mas sem rota HTTP; usuários, movimentações e notificações em memória, e não no PostgreSQL. Contrato real de endpoints: `docs/api.md`. Desempenho abaixo da meta (DEF-008).
+> **Estado de implementação (2026-11-12).** Este documento descreve a arquitetura proposta. O que está implementado: monolito modular Spring Boot 3.2.5 em Java 21; login por senha com JWT de 1 hora (`POST /auth/login`); PostgreSQL atrás de porta de armazenamento; auditoria append-only; notificações simuladas em log e memória; interface web em `/`. Divergências conhecidas: refresh token (seção 6.4) existe no serviço, mas sem rota HTTP; usuários, movimentações e notificações em memória, e não no PostgreSQL. Contrato real de endpoints: `docs/api.md`. Desempenho: p95 abaixo de 500 ms nas rodadas 05 a 07 (DEF-008 corrigido), em máquina sem ambiente de referência.
 
 ## 1\. Objetivo e escopo
 
