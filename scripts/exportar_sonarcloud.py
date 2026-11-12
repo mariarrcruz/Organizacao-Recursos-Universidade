@@ -31,8 +31,12 @@ def main():
     medidas = get("measures/component", {"component": PROJETO, "metricKeys": METRICAS, **escopo})
     issues = get("issues/search", {"componentKeys": PROJETO, "resolved": "false", "ps": 100,
                                    "types": "BUG,VULNERABILITY,CODE_SMELL", **escopo})
+    analises = get("project_analyses/search", {"project": PROJETO, "ps": 1, **escopo}).get("analyses", [])
+    revisao = analises[0].get("revision") if analises else None
     saida = {
         "projeto": PROJETO,
+        "commit_analisado": revisao,
+        "data_da_analise": analises[0].get("date") if analises else None,
         "escopo": f"pull request {args.pr}" if args.pr else "branch principal",
         "exportado_em": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "quality_gate": gate["status"],
