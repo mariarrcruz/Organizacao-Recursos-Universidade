@@ -49,11 +49,14 @@ jobs:
       - name: Build do jar
         run: ./mvnw -B -DskipTests package
 
-      - name: Instalar JMeter
+      - name: Instalar JMeter 5.6.3 (mesma versão usada na medição local)
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq jmeter
-          jmeter -v | head -3
+          # Pacote oficial da Apache: o pacote do Ubuntu tem outra configuração de segurança do XStream
+          # e recusa o plano com ForbiddenClassException (ScriptWrapper).
+          curl -fsSL -o /tmp/jmeter.tgz https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz
+          tar -xzf /tmp/jmeter.tgz -C "$HOME"
+          echo "$HOME/apache-jmeter-5.6.3/bin" >> "$GITHUB_PATH"
+          "$HOME/apache-jmeter-5.6.3/bin/jmeter" -v | head -3
 
       - name: Gerar senha do administrador desta execução
         run: |
@@ -77,8 +80,11 @@ jobs:
           mkdir -p perf/resultados carga-resultados
           FALHAS=0
           for i in $(seq -w 1 "${{ inputs.rodadas || '3' }}"); do
-            jmeter -n -t perf/reservas.jmx -Jadmin.senha="$CARGA_ADMIN_SENHA" \
-              -l "perf/resultados/ci-$i.jtl" > "carga-resultados/jmeter-$i.log" 2>&1 || true
+            if ! jmeter -n -t perf/reservas.jmx -Jadmin.senha="$CARGA_ADMIN_SENHA" \
+                 -l "perf/resultados/ci-$i.jtl" > "carga-resultados/jmeter-$i.log" 2>&1; then
+              echo "JMeter falhou na rodada $i:"; tail -20 "carga-resultados/jmeter-$i.log"
+              FALHAS=$((FALHAS+1)); continue
+            fi
             python3 scripts/analisar_jtl.py "perf/resultados/ci-$i.jtl" > "carga-resultados/analise-$i.json" \
               || FALHAS=$((FALHAS+1))
             echo "rodada $i:"; cat "carga-resultados/analise-$i.json"
