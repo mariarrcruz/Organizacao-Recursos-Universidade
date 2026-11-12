@@ -40,7 +40,7 @@ As decisões deste documento são fundamentadas nos seguintes artefatos:
 | `personas/administrador.md` | Responsabilidades administrativas. |
 | `rfc/requisitos-funcionais.md` | Requisitos RF-01 a RF-20. |
 | `rfc/requisitos-nao-funcionais.md` | Requisitos RNF-01 a RNF-18. |
-| `RTM.md` | Matriz de rastreabilidade entre requisitos, riscos, testes e evidências, a ser mantida no repositório. |
+| `rtm.md` | Matriz de rastreabilidade entre requisitos, riscos, testes e evidências, a ser mantida no repositório. |
 
 Os identificadores RF e RNF não são globalmente únicos entre o PRD e os RFCs. A rastreabilidade deverá registrar o documento de origem, o identificador e, preferencialmente, uma descrição curta do requisito.
 
@@ -289,7 +289,7 @@ sequenceDiagram
     DB-->>REP: dados do usuário
     REP-->>ID: usuário encontrado
     ID->>ID: gerar access token (JWT, 1 h) e refresh token (opaco, 7 d)
-    ID->>REP: persistir hash do refresh token
+    Note over ID,REP: refresh token existe no serviço, sem rota HTTP (ver docs/api.md)
     REP->>DB: INSERT
     DB-->>REP: ok
     ID-->>WEB: par de tokens
@@ -1342,7 +1342,7 @@ Cada transformação ETL recebe versão (`v1.0`, `v1.1`, etc) com:
 | Transições inconsistentes | Reservas em estados inválidos. | Matriz única de transições (seção 8.2) e testes de domínio. |
 | Auditoria incompleta | Perda de rastreabilidade. | Persistência transacional (AD-05) e testes de autoria e histórico. |
 | Metas de desempenho sem cenário comum | Evidências não comparáveis. | Scripts versionados (seção 11.2), ambiente documentado e percentil explícito (p95). |
-| Divergência entre PRD e RFCs | Requisitos ou testes incorretos. | Matriz de correspondência (RTM.md) e decisões registradas. |
+| Divergência entre PRD e RFCs | Requisitos ou testes incorretos. | Matriz de correspondência (rtm.md) e decisões registradas. |
 | Cobertura artificial | Quality Gate sem evidência real de qualidade. | Asserções de negócio (seção 12.2) e testes críticos rastreados. |
 | Falha no ambiente de integração | Pipeline não reproduzível. | Documentação de configuração (seção 12.3), dados de teste e dependências. |
 
@@ -1375,7 +1375,7 @@ Cada transformação ETL recebe versão (`v1.0`, `v1.1`, etc) com:
 | PRD RF-13; RFC RF-13 | Interface server-side | Testes dos fluxos e verificação de responsividade. |
 | PRD RNF-01 a RNF-05; RFC RNF-03 a RNF-06 | Testes de carga e pipeline (AD-08, AD-09) | Relatórios do JMeter e evidências de CI. |
 | PRD COV-01, COV-02 e QUAL-01; RFC RNF-10 e RNF-11 | Suíte de testes | Relatório JaCoCo e evidências de asserções de negócio. |
-| PRD RTM-01 | `RTM.md` | Matriz completa de requisito, risco, teste e evidência. |
+| PRD RTM-01 | `rtm.md` | Matriz completa de requisito, risco, teste e evidência. |
 | RFC RNF-15 e RNF-16 | `audit` e `notifications` (AD-06) | Logs estruturados e testes de eventos. |
 
 ### 17.2. Requisitos Batch e Dados (Complemento — AD-10 a AD-15)
@@ -1389,13 +1389,13 @@ Cada transformação ETL recebe versão (`v1.0`, `v1.1`, etc) com:
 | **Auditoria de transformações** | Versionamento de regras de negócio (AD-14) | Sem requisito: necessário se houver evolução de transformações ou ML | Tabela `transformation_version`; rollback de versões testado |
 | **Conformidade LGPD** | Direito ao esquecimento (anonimização) (AD-15) | Parcial: nenhum RNF menciona LGPD, mas Lei 13.709/2018 exige | Procedimento de anonimização com auditoria; soft-delete operacional |
 
-A matriz completa deverá ser mantida no arquivo `RTM.md`, incluindo os requisitos restantes, riscos, identificadores dos testes e links para evidências.
+A matriz completa deverá ser mantida no arquivo `rtm.md`, incluindo os requisitos restantes, riscos, identificadores dos testes e links para evidências.
 
 ## 18\. Entregáveis Arquiteturais
 
 **Documentação:**
 - `docs/arquitetura.md` (este documento com seções 15A, 16.2, 17.2, 18B para dados/ML)
-- `RTM.md` (matriz de rastreabilidade: requisito, risco, teste, evidência)
+- `rtm.md` (matriz de rastreabilidade: requisito, risco, teste, evidência)
 - `README.md` (instalação e execução)
 
 **Código e Testes:**
@@ -1512,7 +1512,7 @@ A documentação arquitetural será considerada completa quando:
 
 1. ✅ **Diagramas:** C4 (contexto, componentes), sequências (login, reserva, aprovação, movimentações, pipeline batch)
 2. ✅ **ADRs aprovados:** AD-01 a AD-15 com alternativas, consequências, riscos e condições de revisão
-3. ✅ **Matriz de rastreabilidade:** `RTM.md` com requisito, risco, teste e evidência (seção 17, 17.2)
+3. ✅ **Matriz de rastreabilidade:** `rtm.md` com requisito, risco, teste e evidência (seção 17, 17.2)
 4. ✅ **Análise de dados/ML:** Watermark, checkpoint, idempotência, retry, qualidade, reprodutibilidade, validação, versionamento, promoção, rollback, observabilidade, LGPD, custos (seção 15A a 15A.8)
 5. ✅ **Justificativas:** Cada decisão marcada como "com requisito", "parcial" ou "sem requisito" (seção 20.0, 15A.2, 17.2)
 6. ⚠️ **Evidências automatizadas:** Cobertura JaCoCo (80% linhas, 70% branches), SonarCloud (0 bugs/vulnerabilidades críticas), testes de concorrência, testes de pipeline batch

@@ -126,7 +126,7 @@ Este diretório contém todas as decisões arquiteturais (ADRs) do sistema de Or
 - [arquitetura.md](../docs/arquitetura.md) — Contexto completo
 - [ATAM-analise.md](../docs/ATAM-analise.md) — Análise arquitetural independente
 - [RFC Requisitos](../rfc/) — Funcionais e não-funcionais
-- [RTM.md](../docs/RTM.md) — Matriz rastreabilidade
+- [rtm.md](../docs/rtm.md) — Matriz rastreabilidade
 
 ---
 

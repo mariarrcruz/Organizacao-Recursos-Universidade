@@ -6,7 +6,7 @@
 
 **Fontes lidas:**
 - `docs/PRD.md`: RF-07, RF-08, RN-04, RN-05, RN-06, RN-07, RN-08, RN-09, RISK-01
-- `docs/RTM.md`: §1.1 (personas), §1.6 (suposições S4–S6 e pendências), §3.8, §3.9, tabela de transições (linhas ~370–383), e a seção de aprovação com revalidação (~linha 608)
+- `docs/rtm.md`: §1.1 (personas), §1.6 (suposições S4–S6 e pendências), §3.8, §3.9, tabela de transições (linhas ~370–383), e a seção de aprovação com revalidação (~linha 608)
 - `docs/testes/plano-tdd.md`: RN-02 a RN-06 e a convenção de intervalos semiabertos
 - `src/main/java/com/organizacao/recursos/servico/ServicoReservas.java`
 - `src/main/java/com/organizacao/recursos/servico/Autorizacao.java`

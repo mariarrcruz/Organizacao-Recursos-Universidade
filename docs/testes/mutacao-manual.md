@@ -1,10 +1,12 @@
 # Mutação manual e rastreabilidade dos requisitos críticos
 
+> **Atenção (2026-11-12).** Este registro foi feito sobre o commit `b4c94b1`. As quebras não foram repetidas depois das mudanças desta entrega (login, catálogo, pool de conexões e remoção do monitor do serviço de reservas). Antes de usar como evidência atual, repita as sete quebras.
+
 **Commit auditado:** `e5d0df2` (merge do PR #10 na `main`).
 **CI do commit:** `Maven verify` — sucesso (run `43100055056`), verificado com `gh run list`.
 **Data:** 2026-11-11.
 
-Este documento registra duas coisas: (1) as regras críticas foram quebradas uma a uma no código de produção e o teste ligado a cada uma foi executado; (2) cada requisito crítico do RTM (`docs/RTM.md`, §1.2) foi conferido por risco, teste localizável por caminho e nome, e evidência de execução no commit atual.
+Este documento registra duas coisas: (1) as regras críticas foram quebradas uma a uma no código de produção e o teste ligado a cada uma foi executado; (2) cada requisito crítico do RTM (`docs/rtm.md`, §1.2) foi conferido por risco, teste localizável por caminho e nome, e evidência de execução no commit atual.
 
 Método: para cada regra, a quebra foi aplicada com uma alteração mínima no arquivo de produção; o teste ligado a ela foi executado com `mvn -o test -Dtest=...`; o arquivo foi restaurado com `git restore` e a árvore verificada limpa antes da próxima quebra. Em nenhum caso a quebra foi commitada.
 
@@ -30,7 +32,7 @@ Método: para cada regra, a quebra foi aplicada com uma alteração mínima no a
 
 ## 2. Rastreabilidade dos requisitos críticos
 
-Requisitos críticos = os marcados como "Crítica" em `docs/RTM.md` §1.2, mais RNF-02 (Anexo A) e o driver D1 (§1.5), que o RTM trata como eliminatório. Oito itens.
+Requisitos críticos = os marcados como "Crítica" em `docs/rtm.md` §1.2, mais RNF-02 (Anexo A) e o driver D1 (§1.5), que o RTM trata como eliminatório. Oito itens.
 
 Risco: quando o RTM registra o risco (Anexo A), a fonte é citada; quando não registra, o risco é derivado do texto do requisito e marcado como tal.
 

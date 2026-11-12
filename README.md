@@ -1,6 +1,6 @@
 # Sistema de Organização de Recursos Universitários
 
-Aloca salas, professores, materiais e equipamentos **sem conflito de horário**, com histórico auditável das reservas. Projeto acadêmico de Qualidade de Software: a entrega é o código, os testes e a documentação de rastreabilidade (`docs/RTM.md`).
+Aloca salas, professores, materiais e equipamentos **sem conflito de horário**, com histórico auditável das reservas. Projeto acadêmico de Qualidade de Software: a entrega é o código, os testes e a documentação de rastreabilidade (`docs/rtm.md`).
 
 Este README descreve **o que a aplicação faz hoje**. O que ainda não existe está listado em [Limitações conhecidas](#limitações-conhecidas) e em `docs/status-requisitos.md`.
 
@@ -37,7 +37,7 @@ Autenticação: JWT assinado (`ServicoAutenticacao`), com validação de assinat
 ## Pré-requisitos
 
 - Docker (para o PostgreSQL e para os testes de integração)
-- JDK 17 ou superior
+- JDK 21 (o build usa `release 21`; o CI roda em JDK 21)
 - Não é preciso instalar Maven: use o wrapper `./mvnw`
 
 ---
@@ -52,8 +52,11 @@ docker compose up -d
 
 # 2. Build e execução
 ./mvnw -B -DskipTests package
-java -jar target/organizacao-recursos-0.1.0-SNAPSHOT.jar --app.dev.tokens=true
+APP_BOOTSTRAP_ADMIN_ID=admin APP_BOOTSTRAP_ADMIN_SENHA='uma-senha-com-8-ou-mais' \
+  java -jar target/organizacao-recursos-0.1.0-SNAPSHOT.jar --app.dev.tokens=true
 ```
+
+Sem `APP_BOOTSTRAP_ADMIN_SENHA` a aplicação sobe sem administrador, e as telas e rotas de administração ficam inacessíveis.
 
 A aplicação escuta em `http://localhost:8080`. O esquema é criado na subida (`src/main/resources/db/schema.sql`).
 
@@ -209,7 +212,7 @@ Requer Docker, porque os testes de persistência e os cenários BDD sobem Postgr
 - cenários BDD em `src/test/resources/features/`;
 - gate de cobertura JaCoCo.
 
-Os testes seguem o ciclo vermelho → verde → refatoração; os commits `test(red)` e `feat(green)` mostram a sequência. Rastreabilidade requisito → teste → commit em [`docs/RTM.md`](docs/RTM.md) §5.3.1.
+Os testes seguem o ciclo vermelho → verde → refatoração; os commits `test(red)` e `feat(green)` mostram a sequência. Rastreabilidade requisito → teste → commit em [`docs/rtm.md`](docs/rtm.md) §5.3.1.
 
 ---
 
@@ -227,7 +230,7 @@ O workflow manual `.github/workflows/carga.yml` roda as rodadas do JMeter (`perf
 |---|---|
 | [`docs/PRD.md`](docs/PRD.md) | Requisitos do produto e regras de negócio (RN-01 a RN-09) |
 | [`rfc/`](rfc/) | Requisitos funcionais e não funcionais |
-| [`docs/RTM.md`](docs/RTM.md) | Matriz de rastreabilidade requisito → teste → commit |
+| [`docs/rtm.md`](docs/rtm.md) | Matriz de rastreabilidade requisito → teste → commit |
 | [`docs/status-requisitos.md`](docs/status-requisitos.md) | Estado auditado de cada requisito e pendências |
 | [`docs/execucao-local.md`](docs/execucao-local.md) | Roteiro de execução local |
 | [`docs/adr/`](docs/adr/) | Decisões arquiteturais |

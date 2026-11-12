@@ -1,5 +1,7 @@
 # Plano TDD — Sistema de Organização de Recursos
 
+> **Atualização (2026-11-12).** Este plano foi escrito antes da implementação. O estado atual dos testes está em `docs/relatorio-qualidade.md` (643 testes, 0 falhas) e em `docs/rtm.md`. O inventário abaixo não reflete os testes criados depois, como os de E2E (`e2e/FluxoEndToEndTest`) e de concorrência com manutenção.
+
 **Versão:** 1.0  
 **Data:** 2026-11-03  
 **Escopo:** Preparação de ciclo TDD baseada em requisitos funcionais, não funcionais e regras de negócio  

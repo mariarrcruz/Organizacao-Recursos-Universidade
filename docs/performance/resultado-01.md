@@ -16,7 +16,7 @@ Nesta rodada única, os quatro limites propostos foram cumpridos: p95 de consult
 
 1. **Uma rodada só.** O `rnf.md` (seção 5) exige pelo menos três rodadas para o grupo medir a variação antes de fixar o limite. Com uma rodada não há dispersão para comparar.
 2. **Ambiente não é de referência.** Aplicação, PostgreSQL (container Docker) e JMeter rodaram na mesma máquina de 16 threads, sem isolamento. O `rnf.md` pede um ambiente de referência fixo.
-3. **Volume de dados desprezível.** O banco tinha 4 reservas no total e cada recurso de carga tinha uma. A premissa S7 de `docs/RTM.md` fala em 10.000 reservas. Com esse volume o resultado pode mudar (ver seção 6).
+3. **Volume de dados desprezível.** O banco tinha 4 reservas no total e cada recurso de carga tinha uma. A premissa S7 de `docs/rtm.md` fala em 10.000 reservas. Com esse volume o resultado pode mudar (ver seção 6).
 4. **A criação medida é quase toda recusa.** Só 1 de 3.987 POSTs foi aceito (201), e ele ocorreu nos primeiros 2 s, fora da janela de medição. O p95 de criação de 335 ms é, portanto, o p95 do caminho 409, não o da criação bem-sucedida.
 
 ---

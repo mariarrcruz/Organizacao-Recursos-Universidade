@@ -553,7 +553,7 @@ Decisões cuja mudança tem **impacto desproporcional** no sistema:
 | Falha compilação | Pipeline CI incluiu compilação | Seção 12.4 (GitHub Actions) |
 | Cobertura de testes baixa | Quality Gate exige 80% linhas, 70% branches | COV-01, COV-02; seção 12.4 |
 | Vulnerabilidades críticas | SonarCloud integrado com 0 bugs críticos | Seção 12.4 (Quality Gate) |
-| Falta de rastreabilidade | RTM.md vincula requisito-risco-teste-evidência | RTM-01 (PRD §6) |
+| Falta de rastreabilidade | rtm.md vincula requisito-risco-teste-evidência | RTM-01 (PRD §6) |
 | Documentação técnica ausente | README.md + arquitetura.md + diagramas Mermaid | RF-14, RNF-18; seção 18 |
 | Testes unitários isolados | Pirâmide: unidade > integração > caixa-preta > carga | Seção 12.1 |
 
