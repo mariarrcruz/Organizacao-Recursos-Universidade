@@ -37,9 +37,11 @@ public class AutenticacaoController {
 
     @PostMapping("/auth/login")
     public Map<String, Object> login(@RequestBody LoginJson corpo) {
-        Set<Perfil> perfis = usuarios.autenticar(corpo == null ? null : corpo.id(), corpo == null ? null : corpo.senha());
+        String id = corpo == null ? null : corpo.id();
+        String senha = corpo == null ? null : corpo.senha();
+        Set<Perfil> perfis = usuarios.autenticar(id, senha);
         List<String> nomes = perfis.stream().map(Enum::name).toList();
-        String token = autenticacao.gerarToken(corpo.id(), nomes, Instant.now().plusSeconds(VALIDADE_SEGUNDOS));
+        String token = autenticacao.gerarToken(id, nomes, Instant.now().plusSeconds(VALIDADE_SEGUNDOS));
         return Map.of("token", token, "expiresIn", VALIDADE_SEGUNDOS, "perfis", nomes);
     }
 
