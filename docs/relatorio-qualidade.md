@@ -77,8 +77,8 @@ Fonte: `target/site/jacoco/jacoco.xml`, `./mvnw -B verify` com JDK 21.
 | Verificação | Resultado | Evidência |
 |---|---|---|
 | `./mvnw -B verify` local, JDK 21 | BUILD SUCCESS; 643 testes, 0 falhas, 0 erros, 0 ignorados | Saída do Maven e `target/surefire-reports/` |
-| CI no GitHub do PR para `main` | Ver seção 4.7 | `gh run list` |
-| Quality gate SonarCloud do PR | Ver seção 4.4 | API do SonarCloud |
+| CI no GitHub do PR #14 para `main` | Sucesso (run `43315686130`, `Maven verify` e SonarCloud concluídos) | `gh run view 43315686130` |
+| Quality gate SonarCloud do PR #14 | OK (run `43315686130`) | API `qualitygates/project_status?pullRequest=14` |
 | Carga no GitHub (workflow manual `carga.yml`) | Não executado ainda: o GitHub só aceita `workflow_dispatch` com o arquivo na branch padrão | — |
 
 ### 4.3 Eficácia dos testes: mutação manual
@@ -99,14 +99,23 @@ Registro de 7 quebras feitas à mão em código de produção (`docs/testes/muta
 
 ### 4.4 Análise estática (meta: zero bugs ou vulnerabilidades críticas)
 
-**Pendente de confirmação.** Os três bugs `java:S8700` registrados em `main` (`ServicoMovimentacoes`, `ServicoReservas` e `RF10MovimentacoesMaterialTest`) foram corrigidos na branch com conversão explícita para UTC (DEF-010). O resultado do SonarCloud para o PR será registrado aqui após a execução.
+Fonte: API do SonarCloud, análise do PR #14 (`pullRequest=14`), após o commit `21e8a53`.
 
-| Métrica | Valor em `main` (2026-11-11) | Meta | Situação na branch |
+| Métrica | Valor no PR #14 | Meta | Situação |
 |---|---|---|---|
-| Vulnerabilidades | 0 | Zero críticas | Aguarda SonarCloud do PR |
-| Bugs críticos | 0 | Zero críticos | Aguarda SonarCloud do PR |
-| Bugs (todos) | 3 (S8700) | Zero | Corrigidos na branch; aguarda SonarCloud |
-| Code smell | 1 (S8786, `VinculoResponsavelTest.java:64`) | — | Não tratado |
+| Quality gate | OK | — | Atendido |
+| Bugs | 0 | Zero | **Atendida** |
+| Vulnerabilidades | 0 | Zero críticas | **Atendida** |
+| Code smells | 0 | — | Informativo |
+| Rating de confiabilidade | 1,0 (A) | — | Informativo |
+| Rating de segurança | 1,0 (A) | — | Informativo |
+| Cobertura (Sonar, código total) | 89,4 % | — | Informativo; o JaCoCo mede de outra forma (seção 4.1) |
+| Cobertura do código novo | 80,9 % | ≥ 80 % (gate) | Atendida |
+| Duplicação | 0,0 % | ≤ 3 % (gate) | Atendida |
+
+**Histórico nesta entrega:** a primeira análise do PR (run `43315068599`) reprovou o gate com um bug `java:S2259` (possível `NullPointerException`) em `AutenticacaoController.java:42`. Foi corrigido com variáveis locais no commit `21e8a53`. A segunda análise passou sem bugs.
+
+Os três bugs `java:S8700` de `main` (DEF-010) não aparecem mais no PR.
 
 ### 4.5 Requisitos críticos na RTM (meta: 100 %)
 
@@ -142,7 +151,7 @@ Erro real 0 % e respostas somente 201 ou 409 nas três rodadas: os critérios de
 
 ### 4.7 CI do PR
 
-**Pendente.** Preenchido após a execução do `ci.yml` no PR para `main`: número do run, resultado do `verify` e do passo SonarCloud.
+PR #14 (`feat/front-login-carga-java21` → `main`). Runs: `43315068599` (reprovou o Sonar por S2259) e `43315686130` (sucesso, `Maven verify` e SonarCloud concluídos, quality gate OK).
 
 ## 5. Defeitos
 
@@ -159,7 +168,7 @@ Fonte: `docs/defeitos/`.
 | DEF-007 — Responsável vê solicitações de recursos não vinculados | Alta | Corrigido | `CoberturaRiscoReservasTest.pendentesSoDeRecursoVinculado`; `FluxoEndToEndTest.responsavelSemVinculoNaoAprova` |
 | DEF-008 — Operações de reserva serializadas: latência alta sob carga | Alta (desempenho) | **Aberto** | Rodadas de carga (seção 4.6) |
 | DEF-009 — README descreve funcionalidades inexistentes | Média | Corrigido | Verificação manual; README e `docs/api.md` |
-| DEF-010 — Sonar S8700: duração entre datas sem fuso | Média (MAJOR) | Corrigido na branch; confirmação pendente no SonarCloud | `RF10MovimentacoesMaterialTest` |
+| DEF-010 — Sonar S8700: duração entre datas sem fuso | Média (MAJOR) | Corrigido; SonarCloud do PR #14 sem bugs | `RF10MovimentacoesMaterialTest` |
 
 **Totais:** 10 defeitos documentados. Abertos: 1 (DEF-008, desempenho).
 
@@ -177,7 +186,7 @@ Fonte: `docs/defeitos/`.
 
 ## 7. Recomendação
 
-**Apresentar como entrega com ressalvas explícitas**, por causa do desempenho:
+**Apresentar como entrega com ressalvas explícitas**, por causa do desempenho. O CI e o quality gate do SonarCloud passam no PR #14:
 
 1. Login, autorização por perfil, catálogo, reservas, aprovação, movimentações, notificações, interface e end-to-end estão implementados e testados.
 2. Dupla reserva e reserva em manutenção são protegidas e testadas sob concorrência.

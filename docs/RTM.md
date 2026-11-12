@@ -1093,9 +1093,9 @@ Situação em 2026-11-12, após a entrega do login, do catálogo, das movimenta�
 | RFC RF-20 | Testes de borda e cenários críticos | Funcional | Alta | tests | Caso de borda não testado | TG-02 · `api/ValidacaoEntradaTest`; `testes/RN01OrdemTemporalTest`; `testes/RN06EstadosAlternativosTest` | Horários inválidos, sobreposição, manutenção, perfil e concorrência cobertos | Testes | Implementado |
 | RFC RNF-02 | Integridade sob concorrência | Não funcional | Crítica | reservations | Inconsistência transacional | TG-03, TG-07 · mesmas classes de concorrência de RF-06 | Sem reservas duplicadas | Relatório de concorrência | Implementado (DEF-001, DEF-002) |
 | COV-01 / COV-02 / RNF-11 | Cobertura linhas ≥ 80 %, ramos ≥ 70 % | Qualidade | Alta | Suíte de testes | Cobertura artificial | Pipeline · `pom.xml` (gate JaCoCo na fase `verify`) | Gate cumprido | Relatório JaCoCo | Implementado; ver `docs/relatorio-qualidade.md` |
-| SEC-01 / RNF-01 | 0 bugs e 0 vulnerabilidades críticas | Qualidade | Crítica | security | Vulnerabilidade crítica | TG-06, SonarCloud · `.github/workflows/ci.yml` | Sem críticas no SonarCloud | Relatório SonarCloud do PR | Pendente de confirmação no SonarCloud do PR (DEF-010 corrigido localmente) |
+| SEC-01 / RNF-01 | 0 bugs/vulnerabilidades críticos | Qualidade | Crítica | security | Vulnerabilidade crítica | TG-06, SonarCloud · `.github/workflows/ci.yml` | Quality gate OK; 0 bugs e 0 vulnerabilidades | Relatório SonarCloud do PR #14 | Implementado: gate OK no PR #14 (0 bugs, 0 vulnerabilidades) |
 | RTM-01 | RTM completa | Qualidade | Alta | Documentação | Falta de rastreabilidade | — · `docs/RTM.md`, `docs/defeitos/` | 100 % dos requisitos críticos mapeados | Este documento | Implementado |
-| RNF-04 / RNF-09 | CI com GitHub Actions | Não funcional | Alta | Pipeline | Pipeline ausente | Pipeline · `.github/workflows/ci.yml` | Pipeline em PR; falhas bloqueiam | Workflow e artefatos | Implementado; execução no PR pendente de confirmação |
+| RNF-04 / RNF-09 | CI com GitHub Actions | Não funcional | Alta | Pipeline | Pipeline ausente | Pipeline · `.github/workflows/ci.yml` | Pipeline em PR; falhas bloqueiam | Workflow e artefatos; run `43315686130` | Implementado: verde no PR #14 |
 | RNF-05 / RNF-10 | TDD e BDD em ≥ 1 funcionalidade | Prática | Média | reservations | Ausência de prática | TG-09 · `src/test/resources/features/`; `bdd/RodarCenariosTest`; commits `test(red)`/`feat(green)` | Funcionalidade com TDD/BDD | Histórico de commits e features | Implementado |
 | Especificação §5 (end-to-end) / TG-05 | Testes end-to-end dos fluxos principais | Qualidade | Alta | Suíte de testes | Quebra entre camadas | TG-05 · `e2e/FluxoEndToEndTest` (4 cenários) | Fluxo completo com estados esperados e casos negativos | Relatório de execução | Implementado |
 | RN-04 / RF-08 sob concorrência | Reserva em recurso com manutenção registrada é recusada mesmo com requisições simultâneas | Funcional | Crítica | reservations, maintenance | Reserva em horário bloqueado | TG-07 · `persistencia/ConcorrenciaManutencaoReservaPostgresTest` (`reservasSimultaneasEmManutencaoSaoRecusadas`) | 20 reservas simultâneas recusadas; nenhuma gravada | Estado final do banco | Implementado (teste novo nesta entrega) |
@@ -1111,7 +1111,7 @@ Situação em 2026-11-12, após a entrega do login, do catálogo, das movimenta�
 - [x] Requisitos e regras de negócio identificados (RF-01 a RF-20, RN-01 a RN-09, RNF-01 a RNF-18) — 15 % da avaliação
 - [x] Estratégia e documentação de testes definida (TG-01 a TG-11); TG-05 (E2E) implementado — 15 % da avaliação
 - [x] Qualidade dos testes automatizados (asserções de negócio; nenhum mock de persistência) — 25 % da avaliação
-- [ ] CI, cobertura (JaCoCo 80/70) e análise estática (SonarCloud 0 críticos) — 15 % da avaliação; **pendente de confirmação no SonarCloud do PR**
+- [x] CI, cobertura (JaCoCo 80/70) e análise estática (SonarCloud 0 bugs e 0 vulnerabilidades) — 15 % da avaliação; PR #14, quality gate OK
 - [ ] Desempenho, segurança e robustez (JMeter, LGPD, menor privilégio) — 10 % da avaliação; **carga não atende ao p95 (DEF-008)**
 - [x] Rastreabilidade e gestão de defeitos (RTM, DEF-001 a DEF-010, DEF-008 aberto) — 10 % da avaliação
 - [ ] Organização, apresentação e autoria — 10 % da avaliação; apresentação não avaliada aqui
@@ -1131,14 +1131,14 @@ Situação em 2026-11-12, após a entrega do login, do catálogo, das movimenta�
 4. Relatório do teste de concorrência com estado final do banco.
 5. Testes de autorização, validação de entrada e tratamento seguro de erros.
 6. Relatório de cobertura JaCoCo (linhas ≥ 80 %, ramos ≥ 70 %) — ver `docs/relatorio-qualidade.md`.
-7. Relatório de análise estática SonarCloud com Quality Gate — **pendente de confirmação no PR**.
+7. Relatório de análise estática SonarCloud com Quality Gate — PR #14, gate OK, 0 bugs, 0 vulnerabilidades.
 8. Relatório de carga JMeter — executado (rodadas 02 a 04), critério não atendido: `docs/performance/resultado-02.md`.
 9. Evidência de prática TDD/BDD (commits e cenários BDD).
 10. Testes de regressão associados a defeitos corrigidos — DEF-007, DEF-009, DEF-010.
 11. RTM (`docs/RTM.md`) com requisitos críticos mapeados.
 12. Registro de defeitos com causa raiz e correção — `docs/defeitos/` (DEF-001 a DEF-010).
 13. Logs de notificações simuladas e eventos de auditoria como amostras de observabilidade.
-14. Workflow GitHub Actions e artefatos — `ci.yml` (PR) e `carga.yml` (manual).
+14. Workflow GitHub Actions e artefatos — `ci.yml` (PR #14, run `43315686130`) e `carga.yml` (manual, aguarda a `main`).
 15. Diagramas C4 e sequências críticas — `docs/arquitetura.md` §4.5 e `docs/RTM.md` §4.
 16. Contrato de API — `docs/api.md`.
 

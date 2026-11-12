@@ -1,6 +1,6 @@
 # DEF-010 — SonarCloud: duração calculada entre LocalDateTime sem fuso (S8700)
 
-**Status:** corrigido (branch `feat/front-login-carga-java21`); aguarda confirmação no SonarCloud do PR
+**Status:** corrigido; SonarCloud do PR #14 sem bugs (run `43315686130`)
 **Data da detecção:** 2026-11-04 (issue aberta no SonarCloud, regra `java:S8700`)
 **Severidade:** MAJOR, não crítica; a meta do pedido é zero bugs
 **Regras afetadas:** RN de duração mínima de reserva e duração de uso de material
