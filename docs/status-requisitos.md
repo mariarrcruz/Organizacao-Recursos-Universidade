@@ -1,5 +1,7 @@
 # Status dos Requisitos — Auditoria de Qualidade
 
+> **Atualização posterior à auditoria.** Esta auditoria foi feita sobre um commit anterior. Desde então foram resolvidos: login por senha (`POST /auth/login`, PEN-01/PEN-01b), pesquisa, consulta, edição e exclusão de recursos (PEN-05), rotas de movimentação (RF-09), notificação simulada com `GET /notificacoes` (RF-11, PEN-08), interface responsiva em `/` (RF-13), correção dos 3 bugs `S8700` e troca do mock de persistência por decorador escrito à mão (ValidacaoEntradaTest). O vínculo Responsável–recurso já estava implementado em `ServicoReservas.exigirAutorizacaoTransicao` (PEN-01c). Pendências reais: JDK 21 no `pom.xml`, persistência de usuários e movimentações, relatórios HTTP restantes e a rodada de carga (exige três rodadas em ambiente de referência, `rnf.md` §5).
+
 Sistema de Organização de Recursos — auditoria em 11/11/2026 (semana ISO 46).
 
 **Escopo:** os 14 requisitos funcionais obrigatórios do PRD (RF-01 a RF-14, `docs/PRD.md` §3), as regras de negócio RN-01 a RN-09 e os quatro limitadores de nota de RISK-01 (`docs/PRD.md` §6). Os RFs de `rfc/requisitos-funcionais.md` (RF-15 a RF-20) foram usados como evidência complementar, sem pontuação separada.

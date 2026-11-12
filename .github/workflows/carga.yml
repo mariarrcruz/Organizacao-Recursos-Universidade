@@ -1,0 +1,103 @@
+name: Carga (JMeter)
+
+# Teste de carga do plano perf/reservas.jmx contra a aplicação, no runner do GitHub.
+# Manual (workflow_dispatch): não roda em cada PR, porque leva vários minutos.
+# Critérios: scripts/analisar_jtl.py (docs/performance/rnf.md).
+
+on:
+  workflow_dispatch:
+    inputs:
+      rodadas:
+        description: 'Número de rodadas (o rnf.md exige pelo menos 3)'
+        required: false
+        default: '3'
+
+permissions:
+  contents: read
+
+jobs:
+  carga:
+    name: JMeter - rodadas de carga
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: organizacao
+          POSTGRES_USER: organizacao
+          POSTGRES_PASSWORD: organizacao
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U organizacao"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin) with Maven cache
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build do jar
+        run: ./mvnw -B -DskipTests package
+
+      - name: Instalar JMeter
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq jmeter
+          jmeter -v | head -3
+
+      - name: Gerar senha do administrador desta execução
+        run: |
+          SENHA="$(openssl rand -hex 16)"
+          echo "::add-mask::$SENHA"
+          echo "CARGA_ADMIN_SENHA=$SENHA" >> "$GITHUB_ENV"
+
+      - name: Subir a aplicação
+        run: |
+          APP_BOOTSTRAP_ADMIN_ID=admin APP_BOOTSTRAP_ADMIN_SENHA="$CARGA_ADMIN_SENHA" \
+            nohup java -jar target/organizacao-recursos-0.1.0-SNAPSHOT.jar --app.dev.tokens=true \
+            > app.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -s -o /dev/null http://localhost:8080/; then echo "aplicação no ar"; exit 0; fi
+            sleep 2
+          done
+          echo "aplicação não subiu"; tail -80 app.log; exit 1
+
+      - name: Rodadas JMeter e análise
+        run: |
+          mkdir -p perf/resultados carga-resultados
+          FALHAS=0
+          for i in $(seq -w 1 "${{ inputs.rodadas || '3' }}"); do
+            jmeter -n -t perf/reservas.jmx -Jadmin.senha="$CARGA_ADMIN_SENHA" \
+              -l "perf/resultados/ci-$i.jtl" > "carga-resultados/jmeter-$i.log" 2>&1 || true
+            python3 scripts/analisar_jtl.py "perf/resultados/ci-$i.jtl" > "carga-resultados/analise-$i.json" \
+              || FALHAS=$((FALHAS+1))
+            echo "rodada $i:"; cat "carga-resultados/analise-$i.json"
+          done
+          echo "rodadas com falha de critério: $FALHAS"
+          test "$FALHAS" -eq 0
+
+      - name: Log da aplicação
+        if: always()
+        run: tail -200 app.log || true
+
+      - name: Upload dos resultados
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: carga-jmeter
+          path: |
+            carga-resultados/
+            perf/resultados/ci-*.jtl
+            app.log
+          retention-days: 14
+          if-no-files-found: warn

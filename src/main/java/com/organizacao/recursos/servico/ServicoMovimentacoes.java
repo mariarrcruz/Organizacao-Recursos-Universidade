@@ -6,6 +6,7 @@ import com.organizacao.recursos.dominio.*;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -60,7 +61,7 @@ public class ServicoMovimentacoes {
             if (m.tipo() == TipoMovimentacao.RETIRADA) {
                 retirada = m;
             } else if (retirada != null) {
-                ultima = Duration.between(retirada.instante(), m.instante());
+                ultima = Duration.between(retirada.instante().toInstant(ZoneOffset.UTC), m.instante().toInstant(ZoneOffset.UTC));
                 retirada = null;
             }
         }

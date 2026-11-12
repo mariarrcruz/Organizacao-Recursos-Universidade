@@ -47,6 +47,12 @@ public interface Armazenamento {
 
     Optional<Recurso> buscarRecurso(String id);
 
+    /** Todos os recursos cadastrados, ordenados por id. */
+    List<Recurso> listarRecursos();
+
+    /** Remove o recurso. Quem chama garante que não há reservas referenciando-o (RF-02). */
+    void removerRecurso(String id);
+
     /** Registra uma tentativa de reserva recusada por sobreposição (conflito evitado). */
     void registrarConflito(ConflitoReserva conflito);
 

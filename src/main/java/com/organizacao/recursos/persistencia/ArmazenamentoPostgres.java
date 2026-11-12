@@ -104,6 +104,32 @@ public final class ArmazenamentoPostgres implements Armazenamento {
         }
     }
 
+    @Override
+    public List<Recurso> listarRecursos() {
+        String sql = "SELECT id, tipo, nome, localizacao, capacidade, restrito, status, competencias "
+                + "FROM recurso ORDER BY id";
+        try (Connection c = conectar(); PreparedStatement ps = c.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            List<Recurso> lista = new java.util.ArrayList<>();
+            while (rs.next()) {
+                lista.add(reconstruirRecurso(rs, "id"));
+            }
+            return lista;
+        } catch (SQLException e) {
+            throw new IllegalStateException("Falha ao listar recursos", e);
+        }
+    }
+
+    @Override
+    public void removerRecurso(String id) {
+        try (Connection c = conectar(); PreparedStatement ps = c.prepareStatement("DELETE FROM recurso WHERE id = ?")) {
+            ps.setString(1, id);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Falha ao remover recurso " + id, e);
+        }
+    }
+
     // ------------------------------------------------------------------ reservas
 
     @Override

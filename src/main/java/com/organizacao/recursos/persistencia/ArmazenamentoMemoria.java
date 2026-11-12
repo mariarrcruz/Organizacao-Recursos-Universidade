@@ -87,6 +87,16 @@ public final class ArmazenamentoMemoria implements Armazenamento {
     }
 
     @Override
+    public synchronized List<Recurso> listarRecursos() {
+        return recursos.values().stream().sorted(java.util.Comparator.comparing(Recurso::id)).toList();
+    }
+
+    @Override
+    public synchronized void removerRecurso(String id) {
+        recursos.remove(id);
+    }
+
+    @Override
     public synchronized void registrarConflito(ConflitoReserva conflito) {
         conflitos.add(conflito);
     }

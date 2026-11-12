@@ -11,6 +11,7 @@ import com.organizacao.recursos.persistencia.ArmazenamentoMemoria;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -51,6 +52,13 @@ public class ServicoReservas {
         this.armazenamento = armazenamento;
     }
 
+    /** Destino das notificações de mudança de estado (RF-11). Por padrão, descarta. */
+    private Notificador notificador = Notificador.NULO;
+
+    public synchronized void definirNotificador(Notificador notificador) {
+        this.notificador = notificador == null ? Notificador.NULO : notificador;
+    }
+
     // ---------------------------------------------------------------- criação e alteração
 
     public synchronized Reserva solicitar(Usuario ator, Recurso recurso, LocalDateTime inicio, LocalDateTime fim) {
@@ -70,6 +78,7 @@ public class ServicoReservas {
         EstadoReserva inicial = recurso.restrito() ? EstadoReserva.SOLICITADA : EstadoReserva.APROVADA;
         Reserva nova = new Reserva(UUID.randomUUID().toString(), ator, recurso, inicio, fim, inicial);
         armazenamento.inserirReserva(nova, evento(nova.getId(), ator, "SOLICITAR", null, inicial, null));
+        notificador.notificar(ator.id(), "Reserva " + nova.getId() + " (" + recurso.id() + ") registrada: " + inicial);
         return nova;
     }
 
@@ -167,6 +176,8 @@ public class ServicoReservas {
         armazenamento.atualizarReserva(nova,
                 evento(nova.getId(), ator, "TRANSICIONAR", atual.getEstado(), destino, justificativa),
                 destino == EstadoReserva.APROVADA);
+        notificador.notificar(atual.getSolicitante().id(),
+                "Reserva " + nova.getId() + " (" + nova.getRecurso().id() + "): " + atual.getEstado() + " → " + destino);
         return nova;
     }
 
@@ -213,10 +224,19 @@ public class ServicoReservas {
 
     // ---------------------------------------------------------------- consultas e auditoria (RN-09)
 
+    /** Solicitações aguardando análise nos recursos vinculados ao Responsável (D3). */
     public synchronized List<Reserva> pendentesDeAnalise(Usuario ator) {
         exigirPerfil(ator, Perfil.RESPONSAVEL);
         return armazenamento.listarReservas().stream()
-                .filter(r -> r.getEstado() == EstadoReserva.SOLICITADA).toList();
+                .filter(r -> r.getEstado() == EstadoReserva.SOLICITADA)
+                .filter(r -> vinculado(ator, r))
+                .toList();
+    }
+
+    /** Reservas em que o usuário é o solicitante. */
+    public synchronized List<Reserva> minhasReservas(Usuario ator) {
+        exigirAutenticado(ator);
+        return armazenamento.listarReservas().stream().filter(r -> ehDono(ator, r)).toList();
     }
 
     /** Vincula um Responsável a um recurso (D3). Só Administrador. */
@@ -345,7 +365,7 @@ public class ServicoReservas {
         if (!fim.isAfter(inicio)) {
             throw new ErroAplicacao(400, "Fim deve ser posterior ao início");
         }
-        if (Duration.between(inicio, fim).compareTo(DURACAO_MINIMA) < 0) {
+        if (Duration.between(inicio.toInstant(ZoneOffset.UTC), fim.toInstant(ZoneOffset.UTC)).compareTo(DURACAO_MINIMA) < 0) {
             throw new ErroAplicacao(400, "Duração mínima da reserva é de " + DURACAO_MINIMA.toMinutes() + " minuto(s)");
         }
     }
