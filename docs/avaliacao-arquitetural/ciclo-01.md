@@ -23,7 +23,7 @@ Este é o primeiro ciclo. Ele cobre as etapas de apresentação de drivers, util
 - Build e CI: `pom.xml`, `.github/workflows/ci.yml`, `README.md`.
 - Runs do GitHub Actions consultados pela API pública.
 
-**Não foram usados como evidência:** `docs/ATAM-analise.md` (análise anterior, que não foi reconciliada aqui), `docs/RTM.md` e `docs/testes/plano-tdd.md`. Eles podem ser cruzados no próximo ciclo.
+**Não foram usados como evidência:** `docs/ATAM-analise.md` (análise anterior, que não foi reconciliada aqui), `docs/rtm.md` e `docs/testes/plano-tdd.md`. Eles podem ser cruzados no próximo ciclo.
 
 **Verificação executada:** `./mvnw -B -o -q test` (offline, dependências já no cache local) terminou sem falhas. O `target/surefire-reports` existente registra 146 testes, 0 falhas, 0 erros, 0 ignorados, mas são relatórios de uma execução anterior e não foram usados como prova da situação atual.
 

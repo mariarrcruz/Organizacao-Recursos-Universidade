@@ -1,4 +1,4 @@
-# RTM.md — Matriz de Rastreabilidade e Documentação Arquitetural
+# rtm.md — Matriz de Rastreabilidade e Documentação Arquitetural
 
 Sistema de Organização de Recursos — Disciplina Qualidade 2026.2
 
@@ -930,7 +930,7 @@ Aferição deve registrar: hardware/SO, versão Java e Spring Boot, configuraç�
 
 ### 8.1 Estrutura da Matriz de Rastreabilidade (RTM)
 
-A RTM.md (este documento) deve permitir rastreamento entre requisito, risco, decisão, implementação prevista, teste e evidência. Estrutura mínima por linha:
+A rtm.md (este documento) deve permitir rastreamento entre requisito, risco, decisão, implementação prevista, teste e evidência. Estrutura mínima por linha:
 
 | Coluna | Conteúdo |
 |---|---|
@@ -1022,7 +1022,7 @@ Todos os demais ADRs seguem o mesmo modelo: identificador, título, contexto, pr
 1. Repositório de código com histórico ativo e revisão por pares.
 2. Pacote da aplicação executável com instruções de instalação e execução.
 3. Documentação operacional (`README.md` e documentação de fluxos/API — RF-14).
-4. Matriz de rastreabilidade (`RTM.md` — este documento; RTM-01).
+4. Matriz de rastreabilidade (`rtm.md` — este documento; RTM-01).
 5. Modelagem arquitetural: diagramas de contexto, componentes e sequências críticas (esta seção 4).
 6. Suíte e relatório de testes (plano de testes, suíte automatizada JUnit 5: unitários, parametrizados, integração, caixa-preta, E2E; relatório de execução).
 7. Pipeline de CI (GitHub Actions).
@@ -1042,7 +1042,7 @@ Todos os demais ADRs seguem o mesmo modelo: identificador, título, contexto, pr
 | Pipeline CI presente | Workflow GitHub Actions, artefatos de execução |
 | Cobertura ≥ 80% linhas / ≥ 70% branches | Relatório JaCoCo |
 | SonarCloud 0 críticos | Relatório de análise estática, Quality Gate |
-| RTM 100% requisitos críticos | `RTM.md` completa |
+| RTM 100% requisitos críticos | `rtm.md` completa |
 | TDD/BDD em ≥ 1 funcionalidade | Histórico de commits, documentação da prática |
 | Testes de carga | Relatório JMeter, cenários versionados |
 | Gestão de defeitos | Registro de defeitos com causa raiz e teste de regressão |
@@ -1094,7 +1094,7 @@ Situação em 2026-11-12, após a entrega do login, do catálogo, das movimenta�
 | RFC RNF-02 | Integridade sob concorrência | Não funcional | Crítica | reservations | Inconsistência transacional | TG-03, TG-07 · mesmas classes de concorrência de RF-06 | Sem reservas duplicadas | Relatório de concorrência | Implementado (DEF-001, DEF-002) |
 | COV-01 / COV-02 / RNF-11 | Cobertura linhas ≥ 80 %, ramos ≥ 70 % | Qualidade | Alta | Suíte de testes | Cobertura artificial | Pipeline · `pom.xml` (gate JaCoCo na fase `verify`) | Gate cumprido | Relatório JaCoCo | Implementado; ver `docs/relatorio-qualidade.md` |
 | SEC-01 / RNF-01 | 0 bugs/vulnerabilidades críticos | Qualidade | Crítica | security | Vulnerabilidade crítica | TG-06, SonarCloud · `.github/workflows/ci.yml` | Quality gate OK; 0 bugs e 0 vulnerabilidades | Relatório SonarCloud do PR #14 | Implementado: gate OK no PR #14 (0 bugs, 0 vulnerabilidades) |
-| RTM-01 | RTM completa | Qualidade | Alta | Documentação | Falta de rastreabilidade | — · `docs/RTM.md`, `docs/defeitos/` | 100 % dos requisitos críticos mapeados | Este documento | Implementado |
+| RTM-01 | RTM completa | Qualidade | Alta | Documentação | Falta de rastreabilidade | — · `docs/rtm.md`, `docs/defeitos/` | 100 % dos requisitos críticos mapeados | Este documento | Implementado |
 | RNF-04 / RNF-09 | CI com GitHub Actions | Não funcional | Alta | Pipeline | Pipeline ausente | Pipeline · `.github/workflows/ci.yml` | Pipeline em PR; falhas bloqueiam | Workflow e artefatos; run `43315686130` | Implementado: verde no PR #14 |
 | RNF-05 / RNF-10 | TDD e BDD em ≥ 1 funcionalidade | Prática | Média | reservations | Ausência de prática | TG-09 · `src/test/resources/features/`; `bdd/RodarCenariosTest`; commits `test(red)`/`feat(green)` | Funcionalidade com TDD/BDD | Histórico de commits e features | Implementado |
 | Especificação §5 (end-to-end) / TG-05 | Testes end-to-end dos fluxos principais | Qualidade | Alta | Suíte de testes | Quebra entre camadas | TG-05 · `e2e/FluxoEndToEndTest` (4 cenários) | Fluxo completo com estados esperados e casos negativos | Relatório de execução | Implementado |
@@ -1135,11 +1135,11 @@ Situação em 2026-11-12, após a entrega do login, do catálogo, das movimenta�
 8. Relatório de carga JMeter — executado (rodadas 02 a 04), critério não atendido: `docs/performance/resultado-02.md`.
 9. Evidência de prática TDD/BDD (commits e cenários BDD).
 10. Testes de regressão associados a defeitos corrigidos — DEF-007, DEF-009, DEF-010.
-11. RTM (`docs/RTM.md`) com requisitos críticos mapeados.
+11. RTM (`docs/rtm.md`) com requisitos críticos mapeados.
 12. Registro de defeitos com causa raiz e correção — `docs/defeitos/` (DEF-001 a DEF-010).
 13. Logs de notificações simuladas e eventos de auditoria como amostras de observabilidade.
 14. Workflow GitHub Actions e artefatos — `ci.yml` (PR #14, run `43315686130`) e `carga.yml` (manual, aguarda a `main`).
-15. Diagramas C4 e sequências críticas — `docs/arquitetura.md` §4.5 e `docs/RTM.md` §4.
+15. Diagramas C4 e sequências críticas — `docs/arquitetura.md` §4.5 e `docs/rtm.md` §4.
 16. Contrato de API — `docs/api.md`.
 
 

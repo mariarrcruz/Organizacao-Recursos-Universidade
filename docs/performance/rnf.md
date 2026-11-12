@@ -1,7 +1,7 @@
 # Requisitos de desempenho mensuráveis — consulta de disponibilidade e criação de reserva
 
-**Status:** PROPOSTA — para o grupo validar antes de ser tratada como critério de aceite.
-**Relaciona-se a:** RNF-03 (consultas), RNF-04 (ações de disparo), RNF-06 (robustez sob carga), D5 em `docs/RTM.md`.
+**Status:** MEDIDO. Os limites p95 ≤ 500 ms e erro < 1 % foram medidos nas rodadas `resultado-02.md` (não atende), `resultado-03.md` (atende, máquina local) e na carga do GitHub (`docs/performance/github-carga-43322490773/`, atende). A equipe ainda não fixou os limites como critério de aceite: a medição em ambiente de referência (três rodadas, seção 5) continua pendente.
+**Relaciona-se a:** RNF-03 (consultas), RNF-04 (ações de disparo), RNF-06 (robustez sob carga), D5 em `docs/rtm.md`.
 
 ---
 

@@ -13,7 +13,7 @@
 | Ambiente de desempenho | AMD Ryzen 7 5700U, 16 threads, 15 GiB RAM, mesma máquina para aplicação, banco e JMeter, com duas IDEs Java ativas durante as rodadas. Não é ambiente de referência (`docs/performance/rnf.md`, §5). |
 | Integrantes | Ver histórico git. A divisão de responsabilidades é a proposta em `docs/status-requisitos.md`, §6, e não foi confirmada pela equipe. |
 
-**Referências cruzadas:** o arquivo da matriz é `docs/RTM.md` (o pedido cita `docs/rtm.md`).
+**Referências cruzadas:** a matriz de rastreabilidade é `docs/rtm.md`.
 
 ## 2. Escopo
 
@@ -60,12 +60,12 @@
 
 ### 4.1 Cobertura (meta: linhas ≥ 80 %, ramos ≥ 70 %)
 
-Fonte: `target/site/jacoco/jacoco.xml`, `./mvnw -B verify` com JDK 21.
+Fonte: `docs/qualidade/jacoco.xml` (versionado; gerado por `./mvnw -B verify` com JDK 21).
 
 | Métrica | Coberto / total | Percentual | Meta | Situação |
 |---|---:|---:|---:|---|
-| Linhas | 1258 / 1368 | 92,0 % | ≥ 80 % | **Atendida** |
-| Ramos | 541 / 646 | 83,7 % | ≥ 70 % | **Atendida** |
+| Linhas | 1286 / 1391 | 92,5 % | ≥ 80 % | **Atendida** |
+| Ramos | 556 / 664 | 83,7 % | ≥ 70 % | **Atendida** |
 | Instruções | 7080 / 7577 | 93,4 % | — | Informativo |
 | Métodos | 363 / 368 | 98,6 % | — | Informativo |
 | Classes | 73 / 73 | 100 % | — | Informativo |
@@ -99,7 +99,7 @@ Registro de 7 quebras feitas à mão em código de produção (`docs/testes/muta
 
 ### 4.4 Análise estática (meta: zero bugs ou vulnerabilidades críticas)
 
-Fonte: API do SonarCloud, análise do PR #14 (`pullRequest=14`), após o commit `21e8a53`.
+Fonte: `docs/qualidade/sonarcloud-pr14.json` (análise do PR #14, exportada por `scripts/exportar_sonarcloud.py --pr 14`). A branch principal está em `docs/qualidade/sonarcloud.json`.
 
 | Métrica | Valor no PR #14 | Meta | Situação |
 |---|---|---|---|
@@ -119,7 +119,7 @@ Os três bugs `java:S8700` de `main` (DEF-010) não aparecem mais no PR.
 
 ### 4.5 Requisitos críticos na RTM (meta: 100 %)
 
-Requisitos críticos = os marcados "Crítica" em `docs/RTM.md` §1.2, mais RNF-02, o driver D1 e a regra RN-04 sob concorrência. Detalhamento em `docs/RTM.md`, Anexo A.
+Requisitos críticos = os marcados "Crítica" em `docs/rtm.md` §1.2, mais RNF-02, o driver D1 e a regra RN-04 sob concorrência. Detalhamento em `docs/rtm.md`, Anexo A.
 
 | Requisito | Teste localizado | Situação |
 |---|---|---|
@@ -145,11 +145,11 @@ Fontes: `docs/performance/resultado-01.md` (rodada anterior, JDK 17), `resultado
 | 05 | 3 ms | 39 ms | 0 % | ATENDIDO |
 | 06 | 3 ms | 38 ms | 0 % | ATENDIDO |
 | 07 | 3 ms | 39 ms | 0 % | ATENDIDO |
-| GitHub, workflow `carga.yml` (execução `43322490773`, 3 rodadas, runner do GitHub) | 1 ms | ver nota | 0 % | ATENDIDO |
+| GitHub, workflow `carga.yml` (execução `43322490773`, 3 rodadas, runner do GitHub) | 1 ms | 2 ms | 0 % | ATENDIDO |
 
 **Causa corrigida (DEF-008):** o serviço de reservas serializava todas as operações com um monitor Java em volta de I/O de banco, e cada operação abria uma conexão nova. A correção remove o monitor, usa pool de conexões e deixa a atomicidade com o armazenamento (transação, lock consultivo e `EXCLUDE` no PostgreSQL). Os testes de concorrência e de regra continuam passando.
 
-**Carga no GitHub:** o workflow `carga.yml` (manual, na `main` após o PR #15) rodou as três rodadas no runner hospedado do GitHub, com JMeter 5.6.3 do arquivo oficial da Apache. A execução `43322490773` terminou com sucesso e os três vereditos foram ATENDIDO, com erro 0 %. A consulta teve p95 de 1 ms nas três rodadas. Os números de criação não aparecem no log consultado, e não consegui baixar o artefato `carga-jmeter`, então ficam registrados apenas o veredito e a consulta. Esse runner tem outra máquina e 4 núcleos, então não substitui a medição de referência.
+**Carga no GitHub:** o workflow `carga.yml` (manual, na `main` após o PR #15) rodou as três rodadas no runner hospedado, com JMeter 5.6.3 do arquivo oficial da Apache. A execução `43322490773` terminou com sucesso. Consulta com p95 de 1 ms e criação com p95 de 2 ms nas três rodadas, erro 0 % e só respostas 200 (consulta) e 409 (criação). As análises e os logs estão em `docs/performance/github-carga-43322490773/`. Os `.jtl` brutos não são versionados. Esse runner tem outra máquina e 4 núcleos, então não substitui a medição de referência.
 
 **Ressalva:** as rodadas 05 a 07 foram feitas na mesma máquina de desenvolvimento, com duas IDEs Java abertas. Não é o ambiente de referência do `rnf.md` §5. O requisito está atendido nessa medição, mas o limite não deve ser tratado como fixado até uma medição em ambiente de referência.
 

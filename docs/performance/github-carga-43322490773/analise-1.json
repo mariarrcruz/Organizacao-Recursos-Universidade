@@ -1,0 +1,25 @@
+{
+  "amostras_consideradas_apos_ramp_up": 17991,
+  "operacoes": {
+    "consulta": {
+      "rotulo": "GET disponibilidade do recurso",
+      "amostras": 13493,
+      "p95_ms": 1,
+      "taxa_erro": 0.0,
+      "codigos": {
+        "200": 13493
+      }
+    },
+    "criacao": {
+      "rotulo": "POST criar reserva (disputa)",
+      "amostras": 4498,
+      "p95_ms": 2,
+      "taxa_erro": 0.0,
+      "codigos": {
+        "409": 4498
+      }
+    }
+  },
+  "falhas": [],
+  "veredito": "ATENDIDO"
+}

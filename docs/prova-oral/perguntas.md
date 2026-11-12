@@ -21,11 +21,11 @@
 - *Resposta fraca:* "É o cenário de auditoria imutável; temos testes para isso." (Não identifica o teste nem o limite: o trigger impede UPDATE e DELETE, mas não impede acesso direto ao banco por um administrador de infraestrutura, como o ADR-005 registra.)
 
 **I3. O RNF-12 exige rastreabilidade completa e imutável. Quais partes do requisito o repositório comprova com teste e quais ficam sem prova? Dê um exemplo de cada.**
-- *Onde está a resposta:* `rfc/requisitos-nao-funcionais.md`, seção RNF-12 (linha 96); `docs/adr/005-auditoria-append-only-transacional.md`, seção "Trade-offs"; `docs/RTM.md`, §3.11.
+- *Onde está a resposta:* `rfc/requisitos-nao-funcionais.md`, seção RNF-12 (linha 96); `docs/adr/005-auditoria-append-only-transacional.md`, seção "Trade-offs"; `docs/rtm.md`, §3.11.
 - *Resposta fraca:* "RNF-12 está atendido pela tabela de auditoria." (Não distingue o que é comprovado do que é só afirmado, por exemplo a retenção de longo prazo, que o ADR marca como responsabilidade de produção.)
 
 **I4. Quais são os limitadores de nota do PRD (RISK-01)? Para cada um, diga o estado atual e a evidência que o sustenta.**
-- *Onde está a resposta:* `docs/PRD.md`, RISK-01 (linha 80); `docs/status-requisitos.md`, §1 e §5 (PEN-01 a PEN-04); `docs/RTM.md`, §1.5 (D1 a D3).
+- *Onde está a resposta:* `docs/PRD.md`, RISK-01 (linha 80); `docs/status-requisitos.md`, §1 e §5 (PEN-01 a PEN-04); `docs/rtm.md`, §1.5 (D1 a D3).
 - *Resposta fraca:* "Todos estão atendidos, por isso o sistema pode ser aprovado." (Não cita a evidência de cada um e ignora a ressalva de autenticação sem login real, PEN-01b.)
 
 ---
@@ -61,7 +61,7 @@
 - *Resposta fraca:* "Mock é mais rápido que o banco." (Confunde mock e implementação em memória, e não diz o que só o banco real prova, como a restrição EXCLUDE e o trigger de auditoria.)
 
 **T3. Por que os conflitos evitados ficam numa tabela própria (`conflito_reserva`), e não no `evento_auditoria`? O que acontece com essa contagem se a recusa estiver numa transação que sofre rollback?**
-- *Onde está a resposta:* `src/main/java/com/organizacao/recursos/servico/ServicoReservas.java`, método `verificarDisponibilidade` (chamada a `registrarConflito`); `src/main/resources/db/schema.sql` (tabela `conflito_reserva`); `src/main/java/com/organizacao/recursos/persistencia/ArmazenamentoPostgres.java`, método `registrarConflitoAposRecusa`; `docs/RTM.md`, §3.13.
+- *Onde está a resposta:* `src/main/java/com/organizacao/recursos/servico/ServicoReservas.java`, método `verificarDisponibilidade` (chamada a `registrarConflito`); `src/main/resources/db/schema.sql` (tabela `conflito_reserva`); `src/main/java/com/organizacao/recursos/persistencia/ArmazenamentoPostgres.java`, método `registrarConflitoAposRecusa`; `docs/rtm.md`, §3.13.
 - *Resposta fraca:* "Porque é outra métrica." (Não cita a regra RN-09.10, segundo a qual recusa não muda estado e, portanto, não gera auditoria. Também não explica por que a corrida registra conflito em conexão própria.)
 
 **T4. Os três bugs `S8700` do SonarCloud estão na `main`. O que a regra alerta, por que o quality gate não reprova o projeto, e qual é o risco real?**

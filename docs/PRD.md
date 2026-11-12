@@ -74,7 +74,7 @@
 
 * **COV-01 (Cobertura de Linhas):** Obter no mínimo 80% de cobertura de linhas aferida via JaCoCo.
 * **COV-02 (Cobertura de Branches):** Obter no mínimo 70% de cobertura de ramos (*branches*) aferida via JaCoCo.
-* **RTM-01 (Completude da Matriz):** Manter 100% dos requisitos críticos mapeados na Matriz de Rastreabilidade (`RTM.md`) ligando requisito, risco, teste e evidência.
+* **RTM-01 (Completude da Matriz):** Manter 100% dos requisitos críticos mapeados na Matriz de Rastreabilidade (`rtm.md`) ligando requisito, risco, teste e evidência.
 * **SEC-01 (Vulnerabilidades e Defeitos):** Atingir a marca de 0 bugs e 0 vulnerabilidades críticas na inspeção do SonarCloud.
 * **QUAL-01 (Relevância dos Testes):** A cobertura de código não pode ser atingida por testes triviais desprovidos de asserções reais de negócio.
 * **RISK-01 (Limitadores de Nota / Critérios Eliminatórios):** A ocorrência de qualquer um dos seguintes cenários inviabiliza a aprovação máxima do projeto: aplicação que não executa, pipeline ausente, falha de autorização ou permissão de dupla reserva.
@@ -86,7 +86,7 @@
 1. **Repositório de Código:** Histórico de versionamento ativo contendo evidências de trabalho contínuo e revisão por pares.
 2. **Pacote da Aplicação:** Aplicação executável acompanhada de instruções detalhadas de instalação e execução.
 3. **Documentação Operacional:** Arquivo `README.md` estruturado e documentação dos fluxos ou das APIs.
-4. **Matriz de Rastreabilidade:** Arquivo `RTM.md` conectando cada requisito ao seu risco associado, teste correspondente e evidência objetiva.
+4. **Matriz de Rastreabilidade:** Arquivo `rtm.md` conectando cada requisito ao seu risco associado, teste correspondente e evidência objetiva.
 5. **Modelagem Arquitetural:** Diagramas de contexto, componentes e sequências críticas do sistema.
 6. **Suíte e Relatório de Testes:** Plano de testes, suíte automatizada (JUnit 5 com unitários, parametrizados, integração, caixa-preta e end-to-end) e relatório de execução.
 7. **Pipeline de CI:** Configuração operacional de integração contínua (GitHub Actions).
