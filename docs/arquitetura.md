@@ -6,6 +6,8 @@
 **Tecnologias-base:** Java, Spring Boot, Spring Security, H2, HTML e CSS\
 **Escopo:** Aplicação local, sem infraestrutura de produção externa
 
+> **Estado de implementação (2026-11-12).** Este documento descreve a arquitetura proposta. O que está implementado: monolito modular Spring Boot 3.2.5 em Java 21; login por senha com JWT de 1 hora (`POST /auth/login`); PostgreSQL atrás de porta de armazenamento; auditoria append-only; notificações simuladas em log e memória; interface web em `/`. Divergências conhecidas: refresh token (seção 6.4) existe no serviço, mas sem rota HTTP; usuários, movimentações e notificações em memória, e não no PostgreSQL. Contrato real de endpoints: `docs/api.md`. Desempenho abaixo da meta (DEF-008).
+
 ## 1\. Objetivo e escopo
 
 Este documento registra as decisões arquiteturais do Sistema de Organização de Recursos, relacionando os requisitos funcionais, não funcionais, regras de negócio, riscos e evidências de qualidade esperadas.

@@ -786,7 +786,7 @@ Conforme RNF-08 (RFC) e arquitetura.md §12.3:
 
 ### 5.2 Grupos de testes
 
-Para cada grupo: objetivo, risco coberto, nível, cenário positivo, cenário negativo, resultado esperado, evidência produzida. Nenhum teste está executado; todos são planejados.
+Para cada grupo: objetivo, risco coberto, nível, cenário positivo, cenário negativo, resultado esperado, evidência produzida. Situação atual: TG-01 a TG-10 executados na suíte (`./mvnw -B verify`); TG-11 (carga) executado, critério não atendido (`docs/performance/resultado-02.md`).
 
 | Grupo | Objetivo | Risco coberto | Nível | Cenário positivo | Cenário negativo | Resultado esperado | Evidência produzida |
 |---|---|---|---|---|---|---|---|
@@ -1067,62 +1067,81 @@ A ocorrência de qualquer um inviabiliza a aprovação máxima:
 
 ## Anexo A — Matriz de rastreabilidade resumida (RTM)
 
+Situação em 2026-11-12, após a entrega do login, do catálogo, das movimentações, das notificações, da interface, do teste end-to-end e da correção de DEF-007 a DEF-010. Cada linha aponta para classes de teste que existem em `src/test/java`.
+
 | ID origem | Requisito/Regra | Tipo | Criticidade | Componente | Risco | Teste (TG) | Critério de aceitação | Evidência | Situação |
 |---|---|---|---|---|---|---|---|---|---|
-| PRD RF-01 / RFC RF-01 | Autenticação e autorização por perfil com JWT | Funcional | Crítica | identity, security | Falha de autorização | TG-06 · `src/test/java/com/organizacao/recursos/testes/RF01AutenticacaoJwtTest.java` :: `rf01_5_assinaturaAdulteradaEhRejeitada`; `…/testes/CoberturaRiscoAutenticacaoTest.java` :: `assinaturaNaoCanonicaRejeita401`; `…/api/MatrizAutorizacaoTest.java` :: `respostaConformeAMatriz` (células 401) | Token válido; acessos não autorizados rejeitados | Relatório de segurança, matriz de autorização | Parcial: JWT validado por testes; login real ausente (PEN-01) |
-| PRD RF-06 / RFC RF-07 | Prevenção de dupla reserva concorrente | Funcional | Crítica | reservations, availability | Dupla reserva | TG-07 · `src/test/java/com/organizacao/recursos/persistencia/ConcorrenciaReservaPostgresTest.java` :: `vinteSolicitacoesSimultaneasGeramUmaReserva`; `…/persistencia/ConcorrenciaReservaHttpPostgresTest.java` :: `vinteRequisicoesSimultaneasGeramUmaReserva` | No máximo 1 reserva por alocação sob concorrência | Estado final do banco, relatório de concorrência | Implementado e validado (concorrência em PostgreSQL; DEF-001, DEF-002) |
-| PRD RF-12 / RFC RF-12 | Relatório de utilização por recurso, carga por professor e conflitos evitados | Funcional | Média | reports | Relatório incorreto | TG-03 | Horas só de reservas usadas, recortadas ao período; conflitos contados por período | Contrato de caixa-preta `RelatorioUtilizacaoContrato` | Parcial: utilização por HTTP implementada; demais relatórios pendentes (PEN-07) |
-| PRD RF-10 / RFC RF-11 | Auditoria de alterações | Funcional | Alta | audit | Auditoria incompleta | TG-03, TG-01 · `src/test/java/com/organizacao/recursos/testes/RN09RastreabilidadeTest.java` (classe inteira, `rn09_1` a `rn09_7`); `…/persistencia/ArmazenamentoPostgresTest.java` :: `auditoriaEhSomenteInsercao`, `mudancaDeEstadoEEventoSaoGravadosJuntos`, `falhaNoEventoDesfazMudancaDeEstadoSemAuditoriaOrfa` | Cada mudança de estado gera registro | Tabela AuditEvent, teste de imutabilidade | Parcial: histórico com instante, append-only e validado; recursos sem auditoria |
-| RFC RNF-02 | Integridade sob concorrência | Não funcional | Crítica | reservations | Inconsistência transacional | TG-03, TG-07 · `src/test/java/com/organizacao/recursos/persistencia/ConcorrenciaReservaPostgresTest.java` :: `vinteSolicitacoesSimultaneasGeramUmaReserva`; `…/persistencia/ConcorrenciaReservaHttpPostgresTest.java` :: `vinteRequisicoesSimultaneasGeramUmaReserva` | Sem reservas duplicadas; rejeição determinística | Relatório de integração e concorrência | Implementado e validado (mesma evidência de RF-06) |
-| COV-01 / COV-02 / RNF-11 | Cobertura linhas ≥80%, branches ≥70% | Qualidade | Alta | Suíte de testes | Cobertura artificial | Pipeline · `pom.xml` (gate `jacoco.line.minimum` = 0.80 e `jacoco.branch.minimum` = 0.70, fase `verify`) | JaCoCo dentro das metas | Relatório JaCoCo | Implementado: gate JaCoCo ativo no `verify` |
-| SEC-01 / RNF-01 | 0 bugs/vulnerabilidades críticos | Qualidade | Crítica | security | Vuleração crítica | TG-06, SonarCloud · `.github/workflows/ci.yml` (etapa de análise SonarCloud) | Sem críticas no SonarCloud | Relatório SonarCloud | Pendente: Quality Gate do SonarCloud não verificado (PEN-04) |
-| RTM-01 | RTM completa | Qualidade | Alta | Documentação | Falta de rastreabilidade | — · `docs/RTM.md`, `docs/status-requisitos.md`, `docs/testes/mutacao-manual.md` | 100% requisitos críticos mapeados | `RTM.md` | Este documento |
-| RNF-04 / RNF-09 | CI via GitHub Actions | Não funcional | Alta | Pipeline | Pipeline ausente | Pipeline · `.github/workflows/ci.yml` (`./mvnw -B verify` em pull request e push na `main`) | Pipeline em PR; falhas bloqueiam | Workflow, artefatos | Implementado: CI verde no GitHub Actions (runs 43084764936, 43084968220) |
-| RNF-05 / RNF-10 | TDD/BDD em ≥ 1 funcionalidade | Prática | Média | A definir | Ausência de prática de engenharia | TG-09 · `src/test/resources/features/transicoes-reserva.feature` executado por `src/test/java/com/organizacao/recursos/bdd/RodarCenariosTest.java`; TDD: commits `test(red)`/`feat(green)` | Funcionalidade desenvolvida com TDD/BDD | Histórico de commits; `src/test/resources/features/`; ver §5.3.1 | Implementado: TDD e BDD executados; CI verde |
-| RNF-01 PRD / RNF-06 | Testes de carga com JMeter | Não funcional | Alta | A definir | Degradação sob carga | TG-11 · `perf/reservas.jmx` | Estabilidade sob carga (metas pendentes P5) | Relatório JMeter | Executado (rodada-01 local); critério em revisão |
-| RNF-03-P1 (proposta) | p95 da consulta de disponibilidade ≤ 500 ms, 50 usuários | Não funcional | Alta | reservations | Lentidão na consulta | TG-11 · `perf/reservas.jmx` | p95 ≤ 500 ms (`docs/performance/rnf.md` §2) | `perf/reservas.jmx`, `perf/resultados/rodada-01.jtl`, `docs/performance/resultado-01.md` | Medido, 1 rodada: 326 ms; decisão INCONCLUSIVO |
-| RNF-04-P1 (proposta) | p95 da criação de reserva ≤ 500 ms, 50 usuários | Não funcional | Alta | reservations | Lentidão na criação | TG-11 · `perf/reservas.jmx` | p95 ≤ 500 ms (`rnf.md` §2) | Mesmas do RNF-03-P1 | Medido, 1 rodada: 335 ms (somente 409); decisão INCONCLUSIVO |
-| RNF-06-P1 / RNF-06-P2 (proposta) | Taxa de erro < 1% e respostas fora de {201, 409} = 0 na mistura de carga | Não funcional | Alta | reservations | Erro sob carga | TG-11 · `perf/reservas.jmx` | Erro real < 1%; 0 respostas 5xx ou inesperadas (409 não conta como erro) | Mesmas do RNF-03-P1 | Medido, 1 rodada: 0,00% erro real; 0 respostas inesperadas; decisão INCONCLUSIVO |
+| PRD RF-01 / RFC RF-01 | Autenticação por senha e JWT | Funcional | Crítica | identity, security | Falha de autorização | TG-06, TG-05 · `testes/RF01AutenticacaoJwtTest`; `api/CatalogoLoginNotificacoesTest` (`loginComSenhaCorreta`, `loginFalhaSemRevelarQualEstaErrado`); `e2e/FluxoEndToEndTest` (`semTokenRecusa`) | Login com senha correta; resposta única para credencial inválida; token sem acesso sem assinatura | Testes e teste E2E | Implementado: `POST /auth/login`, JWT de 1 hora, PBKDF2 |
+| PRD RF-02 / RFC RF-02 | Cadastro e consulta de salas, professores e materiais (incluindo edição e exclusão) | Funcional | Alta | catalog | Cadastro incompleto | TG-04, TG-05 · `api/CatalogoLoginNotificacoesTest` (`consultaRecurso`, `edicaoDeRecurso`, `exclusaoDeRecurso`); `testes/RF02GestaoRecursosTest`; `e2e/FluxoEndToEndTest` | Consulta, edição parcial e exclusão protegida por histórico | Testes e teste E2E | Implementado |
+| PRD RF-03 / RFC RF-03 | Pesquisa por tipo, capacidade, localização, competência e disponibilidade | Funcional | Alta | catalog, availability | Pesquisa incorreta | TG-04, TG-05 · `api/CatalogoLoginNotificacoesTest` (`pesquisaComFiltros`, `pesquisaPorDisponibilidade`); `testes/RF03PesquisaRecursosTest`; `e2e/FluxoEndToEndTest` | Filtros combinados; recurso com conflito fora do resultado | Testes e teste E2E | Implementado |
+| PRD RF-04 / RFC RF-04, RF-05 | Criação, consulta, alteração e cancelamento de reservas com ciclo de estados | Funcional | Alta | reservations | Estado inválido | TG-01, TG-04, TG-09 · `src/test/resources/features/*.feature` (80 cenários) via `bdd/RodarCenariosTest`; `testes/RN05FluxoPrincipalTest` | Transições permitidas e proibidas conforme o feature | Relatório BDD | Implementado |
+| PRD RF-05 / RFC RF-06 | Sobreposição de horários (salas, professores, materiais) | Funcional | Crítica | reservations | Dupla alocação | TG-02, TG-03 · `testes/RN02ExclusividadeAlocacaoTest` | Intervalos sobrepostos recusados com 409 | Testes parametrizados | Implementado |
+| PRD RF-06 / RFC RF-07 | Prevenção de dupla reserva concorrente | Funcional | Crítica | reservations, availability | Dupla reserva | TG-07 · `persistencia/ConcorrenciaReservaPostgresTest` (`vinteSolicitacoesSimultaneasGeramUmaReserva`); `persistencia/ConcorrenciaReservaHttpPostgresTest` (`vinteRequisicoesSimultaneasGeramUmaReserva`) | No máximo 1 reserva por alocação sob concorrência | Estado final do banco | Implementado (DEF-001, DEF-002) |
+| PRD RF-07 / RFC RF-08 | Aprovação obrigatória de Responsável para recursos restritos | Funcional | Alta | reservations | Alocação sem aprovação | TG-06 · `testes/RN07AlcadaAprovacaoTest`; `testes/RecursoLivreAprovacaoTest`; `e2e/FluxoEndToEndTest` (aprovação e `responsavelSemVinculoNaoAprova`) | Restrito nasce SOLICITADA; só Responsável vinculado aprova | Testes e teste E2E | Implementado (DEF-007 corrigido) |
+| PRD RF-08 / RFC RF-09 | Bloqueio em manutenção | Funcional | Alta | reservations | Reserva em manutenção | TG-04 · `testes/RN04ManutencaoTest`; `bdd/bloqueio-manutencao.feature` | Reserva em período de manutenção recusada | Testes e BDD | Implementado |
+| PRD RF-09 / RFC RF-10 | Retirada e devolução de materiais e equipamentos | Funcional | Alta | movements | Material sem registro | TG-02, TG-05 · `testes/RF10MovimentacoesMaterialTest`; `e2e/FluxoEndToEndTest` (retirada, devolução e histórico) | Retirada só com reserva aprovada; devolução só do material retirado | Testes e teste E2E | Implementado por HTTP (`/movimentacoes`) |
+| PRD RF-10 / RFC RF-11 | Histórico auditável de alterações | Funcional | Alta | audit | Auditoria incompleta | TG-03, TG-05 · `testes/RN09RastreabilidadeTest`; `persistencia/ArmazenamentoPostgresTest` (`auditoriaEhSomenteInsercao`); `e2e/FluxoEndToEndTest` (auditoria) | Cada mudança de estado gera registro append-only | Tabela de auditoria; teste de imutabilidade | Implementado para reservas; recursos fora do histórico |
+| PRD RF-11 / RFC RF-17 | Notificação simulada | Funcional | Média | notifications | Notificação não enviada | TG-05 · `api/CatalogoLoginNotificacoesTest` (`transicaoGeraNotificacao`, `endpointDeNotificacoesEhPessoal`); `e2e/FluxoEndToEndTest` | Notificação na criação e nas transições, só para o destinatário | Log e `GET /notificacoes` | Implementado (simulado, ADR-006) |
+| PRD RF-12 / RFC RF-12 | Relatório de utilização, carga horária e conflitos evitados | Funcional | Alta | reports | Relatório incorreto | TG-03, TG-04 · `api/RelatorioUtilizacaoMemoriaTest`; `api/RelatorioUtilizacaoPostgresTest`; `api/RelatorioUtilizacaoContrato` | Horas só de reservas usadas, recortadas ao período | Contrato de caixa-preta | Implementado para o relatório de utilização |
+| PRD RF-13 / RFC RF-13 | Interface responsiva e mensagens de erro compreensíveis | Funcional | Alta | web | Interface inutilizável | TG-05 · `e2e/FluxoEndToEndTest` (página servida em `/`); `api/ValidacaoEntradaTest` (mensagens de erro) | Página em `/` com login, pesquisa, reserva, aprovação, movimentação e administração | Teste E2E e checagem manual | Implementado; verificação visual em navegador não feita |
+| PRD RF-14 / RFC RF-14 | Documentação técnica da API e dos fluxos | Funcional | Média | docs | Documentação enganosa | TG-04 · `docs/api.md`; `README.md`; `docs/execucao-local.md` | Contrato dos endpoints e fluxo reproduzível | Documentos | Implementado (DEF-009 corrigido) |
+| RFC RF-15 | Controle de acesso estrito por perfil | Funcional | Crítica | security | Acesso indevido | TG-06 · `testes/RF15ControleAcessoPerfilTest`; `api/MatrizAutorizacaoTest`; `e2e/FluxoEndToEndTest` (`solicitanteNaoAdministra`) | Respostas conforme a matriz de autorização | Matriz `seguranca/matriz-autorizacao.csv` | Implementado |
+| RFC RF-16 | Solicitante manipula apenas reservas próprias | Funcional | Crítica | security | Reserva de outro | TG-06 · `testes/RF16PropriedadeReservaTest` | Terceiro recebe 403 | Testes | Implementado |
+| RFC RF-17 | Aprovação e rejeição pelo Responsável | Funcional | Alta | reservations | Decisão indevida | TG-06 · `testes/RN07AlcadaAprovacaoTest`; `e2e/FluxoEndToEndTest` | Só Responsável vinculado decide | Testes e teste E2E | Implementado |
+| RFC RF-18 | Administração global pelo Administrador | Funcional | Alta | admin | Administração indevida | TG-06 · `api/RecursosControllerTest`; `api/VinculoResponsavelTest`; `e2e/FluxoEndToEndTest` | Administrador cadastra; demais perfis recebem 403 | Testes | Implementado |
+| RFC RF-19 | Validação do JWT antes de operações protegidas | Funcional | Crítica | security | Operação sem autenticação | TG-06 · `testes/RF01AutenticacaoJwtTest` (`rf01_5_assinaturaAdulteradaEhRejeitada`); `e2e/FluxoEndToEndTest` (`semTokenRecusa`) | Sem token ou assinatura inválida: 401 | Testes | Implementado |
+| RFC RF-20 | Testes de borda e cenários críticos | Funcional | Alta | tests | Caso de borda não testado | TG-02 · `api/ValidacaoEntradaTest`; `testes/RN01OrdemTemporalTest`; `testes/RN06EstadosAlternativosTest` | Horários inválidos, sobreposição, manutenção, perfil e concorrência cobertos | Testes | Implementado |
+| RFC RNF-02 | Integridade sob concorrência | Não funcional | Crítica | reservations | Inconsistência transacional | TG-03, TG-07 · mesmas classes de concorrência de RF-06 | Sem reservas duplicadas | Relatório de concorrência | Implementado (DEF-001, DEF-002) |
+| COV-01 / COV-02 / RNF-11 | Cobertura linhas ≥ 80 %, ramos ≥ 70 % | Qualidade | Alta | Suíte de testes | Cobertura artificial | Pipeline · `pom.xml` (gate JaCoCo na fase `verify`) | Gate cumprido | Relatório JaCoCo | Implementado; ver `docs/relatorio-qualidade.md` |
+| SEC-01 / RNF-01 | 0 bugs e 0 vulnerabilidades críticas | Qualidade | Crítica | security | Vulnerabilidade crítica | TG-06, SonarCloud · `.github/workflows/ci.yml` | Sem críticas no SonarCloud | Relatório SonarCloud do PR | Pendente de confirmação no SonarCloud do PR (DEF-010 corrigido localmente) |
+| RTM-01 | RTM completa | Qualidade | Alta | Documentação | Falta de rastreabilidade | — · `docs/RTM.md`, `docs/defeitos/` | 100 % dos requisitos críticos mapeados | Este documento | Implementado |
+| RNF-04 / RNF-09 | CI com GitHub Actions | Não funcional | Alta | Pipeline | Pipeline ausente | Pipeline · `.github/workflows/ci.yml` | Pipeline em PR; falhas bloqueiam | Workflow e artefatos | Implementado; execução no PR pendente de confirmação |
+| RNF-05 / RNF-10 | TDD e BDD em ≥ 1 funcionalidade | Prática | Média | reservations | Ausência de prática | TG-09 · `src/test/resources/features/`; `bdd/RodarCenariosTest`; commits `test(red)`/`feat(green)` | Funcionalidade com TDD/BDD | Histórico de commits e features | Implementado |
+| Especificação §5 (end-to-end) / TG-05 | Testes end-to-end dos fluxos principais | Qualidade | Alta | Suíte de testes | Quebra entre camadas | TG-05 · `e2e/FluxoEndToEndTest` (4 cenários) | Fluxo completo com estados esperados e casos negativos | Relatório de execução | Implementado |
+| RN-04 / RF-08 sob concorrência | Reserva em recurso com manutenção registrada é recusada mesmo com requisições simultâneas | Funcional | Crítica | reservations, maintenance | Reserva em horário bloqueado | TG-07 · `persistencia/ConcorrenciaManutencaoReservaPostgresTest` (`reservasSimultaneasEmManutencaoSaoRecusadas`) | 20 reservas simultâneas recusadas; nenhuma gravada | Estado final do banco | Implementado (teste novo nesta entrega) |
+| DEF-007 / DEF-008 / DEF-009 / DEF-010 | Regressão dos defeitos registrados | Qualidade | Média | tests | Reincidência | TG-10 · `CoberturaRiscoReservasTest.pendentesSoDeRecursoVinculado` (DEF-007); `e2e/FluxoEndToEndTest.responsavelSemVinculoNaoAprova` (DEF-007); `RF10MovimentacoesMaterialTest` (DEF-010) | Defeito corrigido com teste | Registros em `docs/defeitos/` | DEF-007, DEF-009 e DEF-010 corrigidos; DEF-008 aberto |
+| RNF-03-P1 (proposta) | p95 da consulta de disponibilidade ≤ 500 ms | Não funcional | Alta | reservations | Lentidão sob carga | TG-11 · `perf/reservas.jmx`; `scripts/analisar_jtl.py` | p95 ≤ 500 ms (`docs/performance/rnf.md` §2) | `docs/performance/resultado-02.md` | NÃO ATENDIDO nas rodadas 02 a 04 (870 a 950 ms); DEF-008 aberto |
+| RNF-04-P1 (proposta) | p95 da criação de reserva ≤ 500 ms | Não funcional | Alta | reservations | Lentidão sob carga | TG-11 · `perf/reservas.jmx` | p95 ≤ 500 ms | `docs/performance/resultado-02.md` | NÃO ATENDIDO nas rodadas 02 a 04 (906 a 995 ms); DEF-008 aberto |
+| RNF-06-P1 / RNF-06-P2 (proposta) | Taxa de erro < 1 % e nenhuma resposta fora de {201, 409} | Não funcional | Alta | reservations | Erro sob carga | TG-11 · `perf/reservas.jmx` | Erro < 1 %; nenhum 5xx | `docs/performance/resultado-02.md` | Atendido nas rodadas 02 a 04 (erro 0 %, só 201/409); critério de latência não atendido |
 
 ---
 
 ## Anexo B — Checklist de conformidade com a especificação do projeto
 
-- [ ] Requisitos e regras de negócio identificados (RF-01 a RF-20, RN-01 a RN-09, RNF-01 a RNF-18) — 15% da avaliação
-- [ ] Estratégia e documentação de testes definida (TG-01 a TG-11) — 15% da avaliação
-- [ ] Qualidade dos testes automatizados (asserções reais, não triviais) — 25% da avaliação
-- [ ] CI, cobertura (JaCoCo 80/70) e análise estática (SonarCloud 0 críticos) — 15% da avaliação
-- [ ] Desempenho, segurança e robustez (JMeter, LGPD, menor privilégio) — 10% da avaliação
-- [ ] Rastreabilidade e gestão de defeitos (RTM, defeitos com causa raiz e regressão) — 10% da avaliação
-- [ ] Organização, apresentação e autoria — 10% da avaliação
-- [ ] Limitadores de nota mapeados: aplicação executa, pipeline presente, autorização correta, sem dupla reserva
-- [ ] Nenhuma proposta apresentada como decisão confirmada
-- [ ] Nenhum teste planejado apresentado como executado
-- [ ] Nenhum requisito, dado, integração ou resultado inventado
-- [ ] Documentos existentes (arquitetura.md, PRD, RFCs, personas, README) não modificados
+- [x] Requisitos e regras de negócio identificados (RF-01 a RF-20, RN-01 a RN-09, RNF-01 a RNF-18) — 15 % da avaliação
+- [x] Estratégia e documentação de testes definida (TG-01 a TG-11); TG-05 (E2E) implementado — 15 % da avaliação
+- [x] Qualidade dos testes automatizados (asserções de negócio; nenhum mock de persistência) — 25 % da avaliação
+- [ ] CI, cobertura (JaCoCo 80/70) e análise estática (SonarCloud 0 críticos) — 15 % da avaliação; **pendente de confirmação no SonarCloud do PR**
+- [ ] Desempenho, segurança e robustez (JMeter, LGPD, menor privilégio) — 10 % da avaliação; **carga não atende ao p95 (DEF-008)**
+- [x] Rastreabilidade e gestão de defeitos (RTM, DEF-001 a DEF-010, DEF-008 aberto) — 10 % da avaliação
+- [ ] Organização, apresentação e autoria — 10 % da avaliação; apresentação não avaliada aqui
+- [x] Limitadores de nota mapeados: aplicação executa, pipeline presente, autorização correta, sem dupla reserva
+- [x] Nenhuma proposta apresentada como decisão confirmada (propostas de desempenho marcadas como não atendidas)
+- [x] Nenhum teste planejado apresentado como executado
+- [x] Nenhum requisito, dado, integração ou resultado inventado
+- [x] Documentos atualizados nesta entrega, por solicitação do grupo (o checklist original pedia que não fossem alterados)
 
 ---
 
 ## Anexo C — Lista de evidências necessárias para comprovar a qualidade
 
-1. Relatório de execução dos testes unitários e parametrizados (JUnit 5).
-2. Relatórios de testes de integração com banco realista (Testcontainers/H2 isolado, conforme decisão P2).
-3. Relatórios de testes de API caixa-preta e end-to-end dos fluxos principais.
-4. Relatório do teste de concorrência com estado final do banco (prova de no máximo uma reserva por alocação).
-5. Relatório de testes de autorização, validação de entrada e tratamento seguro de erros.
-6. Relatório de cobertura JaCoCo (linhas ≥ 80%, branches ≥ 70%).
-7. Relatório de análise estática SonarCloud com Quality Gate (0 críticos).
-8. Relatório de testes de carga JMeter com cenários, métricas e critérios de aceitação (metas pendentes P5).
-9. Evidência de prática TDD/BDD (histórico de commits e/ou cenários BDD).
-10. Testes de regressão associados a defeitos corrigidos.
-11. Matriz de rastreabilidade `RTM.md` (100% requisitos críticos).
-12. Registro de defeitos com causa raiz, correção, teste de regressão e fechamento.
-13. Arquivos de log (notificações simuladas) e eventos de auditoria como amostras de observabilidade.
-14. Workflow GitHub Actions e artefatos de pipeline publicados.
-15. Diagramas C4 (contexto, contêineres, componentes) e sequências críticas (esta documentação, seção 4).
-16. Contratos de API/documentação de endpoints (RF-14, pendente de definição dos payloads).
+1. Relatório de execução dos testes unitários e parametrizados (JUnit 5) — `mvn verify`, 638 testes com Java 21.
+2. Testes de integração com banco realista (Testcontainers PostgreSQL 16).
+3. Testes de API caixa-preta e end-to-end dos fluxos principais — `api/`, `e2e/FluxoEndToEndTest`.
+4. Relatório do teste de concorrência com estado final do banco.
+5. Testes de autorização, validação de entrada e tratamento seguro de erros.
+6. Relatório de cobertura JaCoCo (linhas ≥ 80 %, ramos ≥ 70 %) — ver `docs/relatorio-qualidade.md`.
+7. Relatório de análise estática SonarCloud com Quality Gate — **pendente de confirmação no PR**.
+8. Relatório de carga JMeter — executado (rodadas 02 a 04), critério não atendido: `docs/performance/resultado-02.md`.
+9. Evidência de prática TDD/BDD (commits e cenários BDD).
+10. Testes de regressão associados a defeitos corrigidos — DEF-007, DEF-009, DEF-010.
+11. RTM (`docs/RTM.md`) com requisitos críticos mapeados.
+12. Registro de defeitos com causa raiz e correção — `docs/defeitos/` (DEF-001 a DEF-010).
+13. Logs de notificações simuladas e eventos de auditoria como amostras de observabilidade.
+14. Workflow GitHub Actions e artefatos — `ci.yml` (PR) e `carga.yml` (manual).
+15. Diagramas C4 e sequências críticas — `docs/arquitetura.md` §4.5 e `docs/RTM.md` §4.
+16. Contrato de API — `docs/api.md`.
 
----
 
 ## Conclusão
 

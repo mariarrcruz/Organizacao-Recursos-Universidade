@@ -5,208 +5,183 @@
 | Item | Valor |
 |---|---|
 | Repositório | `mariarrcruz/Organizacao-Recursos-Universidade` |
-| Commit avaliado | `b4c94b1` (`main`, merge do PR #12) |
-| Data da avaliação | 2026-11-11 |
-| CI do commit | `Maven verify` — sucesso (run `43103127446`, verificado com `gh run list`) |
-| Integrantes (autores no histórico git da `main`) | Iago Souza (duas grafias de autor: 83 + 11 commits); Maria Rita Ribeiro Cruz (6); ThalesConstruct (2); Thais Rodrigues (1). A divisão de responsabilidades é a proposta em `docs/status-requisitos.md`, §6, e não foi confirmada pela equipe. |
-| Ambiente de execução local | Linux 6.8.0-138-generic; OpenJDK 17.0.21 (pom compila para 17); Maven Wrapper 3.9.9; Docker 29.9.3; PostgreSQL 16-alpine via Testcontainers |
-| Ambiente de CI | Ubuntu (runner hospedado), Temurin JDK 21, `./mvnw -B verify`, análise SonarCloud em push e PR |
-| Ambiente de desempenho | Declarado em `docs/performance/resultado-01.md` (AMD Ryzen 7 5700U, 16 threads, 15 GiB RAM, mesma máquina para aplicação, banco e JMeter). **Não foi remedido nesta avaliação.** |
+| Base da avaliação | `main` em `b4c94b1`, mais a branch `feat/front-login-carga-java21` (PR para `main`) |
+| Data da avaliação | 2026-11-12 |
+| Build local | `./mvnw -B verify` com OpenJDK 21.0.13 (Temurin); 643 testes, 0 falhas |
+| Ambiente de CI | Ubuntu (runner hospedado), Temurin JDK 21, `./mvnw -B verify`, análise SonarCloud em PR e push na `main` |
+| Ambiente local de execução | Linux 6.8.0-138-generic; Docker; PostgreSQL 16-alpine (Testcontainers nos testes, `docker-compose.yml` na execução) |
+| Ambiente de desempenho | AMD Ryzen 7 5700U, 16 threads, 15 GiB RAM, mesma máquina para aplicação, banco e JMeter, com duas IDEs Java ativas durante as rodadas. Não é ambiente de referência (`docs/performance/rnf.md`, §5). |
+| Integrantes | Ver histórico git. A divisão de responsabilidades é a proposta em `docs/status-requisitos.md`, §6, e não foi confirmada pela equipe. |
 
-**Referências cruzadas:** o pedido cita `docs/rtm.md`; o arquivo do repositório é `docs/RTM.md`. Este relatório usa o nome real.
+**Referências cruzadas:** o arquivo da matriz é `docs/RTM.md` (o pedido cita `docs/rtm.md`).
 
 ## 2. Escopo
 
 ### 2.1 Avaliado
 
-- API HTTP de reservas, manutenção, recursos, disponibilidade, vínculo Responsável–recurso, auditoria e relatório de utilização.
-- Regras de negócio RN-01 a RN-09 nas partes implementadas.
-- Matriz de autorização (`docs/seguranca/matriz-autorizacao.md`) executada célula a célula.
-- Contrato de erro (ProblemDetail, sem vazamento de detalhe interno).
-- Persistência PostgreSQL: restrição de exclusão, lock por recurso, trigger de auditoria, atomicidade transação e auditoria.
+- API HTTP completa: autenticação por senha (`/auth/login`), usuários, recursos (cadastro, pesquisa, consulta, edição, exclusão), vínculos, manutenções, reservas (criação, consulta, alteração, cancelamento, aprovação, rejeição, uso, conclusão, não comparecimento, auditoria), disponibilidade, movimentações de material, notificações simuladas e relatório de utilização.
+- Interface web em `/`, servida pela mesma aplicação (verificada pelo teste end-to-end e pelo conteúdo da página; não foi aberta num navegador).
+- Regras de negócio RN-01 a RN-09.
+- Matriz de autorização (`docs/seguranca/matriz-autorizacao.md`).
+- Contrato de erro (ProblemDetail, sem detalhe interno).
+- Persistência PostgreSQL: restrição de exclusão, lock por recurso, trigger de auditoria, atomicidade.
 - Cenários BDD (80) em `src/test/resources/features/`.
-- Mutação manual das regras críticas (7 quebras).
-- Cobertura (JaCoCo), análise estática (SonarCloud) e desempenho de uma rodada JMeter (resultado anterior).
+- Testes end-to-end com aplicação em porta real e PostgreSQL em contêiner (`e2e/FluxoEndToEndTest`).
+- Mutação manual das regras críticas (7 quebras, registro em `docs/testes/mutacao-manual.md`).
+- Cobertura (JaCoCo), análise estática (SonarCloud) e carga (JMeter).
 
 ### 2.2 Fora de escopo, e por quê
 
 | Item | Motivo |
 |---|---|
-| Interface web (RF-13) | Não existe: nenhum template ou página estática em `src/main/resources`. |
-| Notificações (RF-11) | Não existe. |
-| Movimentações de retirada e devolução (RF-09) por HTTP | Lógica em `ServicoMovimentacoes`, sem rota nem persistência (PEN-07). |
-| Relatórios além de utilização (carga por sala, contagem por estado) por HTTP | Sem rota (PEN-07). |
-| Pesquisa parametrizada de recursos (RF-03) e gestão de recursos (edição, exclusão) (RF-02, RF-18) | Sem rota (PEN-05). |
-| Login real por credenciais | Inexistente (PEN-01b). A autenticação atual aceita tokens emitidos pelo próprio endpoint de laboratório. |
-| Segurança de infraestrutura (TLS, segredos, rede) | Fora do código da aplicação; não avaliada. |
+| Segurança de infraestrutura (TLS, gestão de segredos, rede) | Fora do código da aplicação. |
 | LGPD (ADR-015) | Apenas decisão documentada; sem implementação verificada. |
-| Acessibilidade | Não há interface a avaliar. |
 | Volume de produção (10.000 reservas, premissa S7) | Não medido. |
+| Persistência de usuários, movimentações e notificações | Em memória por decisão do grupo, conforme `docs/api.md` e o README (limitações conhecidas). |
+| Verificação visual da interface em navegador | Não feita; a página foi validada por teste end-to-end e por checagem de conteúdo. |
 
 ## 3. Estratégia de teste por nível
 
-| Nível | O que cobre | Onde está | Situação |
+| Nível (TG) | O que cobre | Onde está | Situação |
 |---|---|---|---|
-| Unitário | Regras de domínio e serviço: ordem temporal, sobreposição, manutenção, transições, autorização por perfil | `src/test/java/com/organizacao/recursos/testes/`, `servico/` | Executado: parte de 624 testes |
-| Integração com PostgreSQL real | Restrição de exclusão, lock, trigger de auditoria, atomicidade, vínculo | `persistencia/` (Testcontainers) | Executado |
-| API caixa-preta | Matriz de autorização (98 células de status e 75 de erro), posse pelo id, validação de entrada, contrato de relatório | `api/` (MockMvc, MatrizAutorizacaoTest, ValidacaoEntradaTest, RelatorioUtilizacaoContrato) | Executado |
-| BDD | 80 cenários de aprovação, bloqueio e transições, executados contra PostgreSQL pela API | `bdd/RodarCenariosTest` | Executado |
-| Mutação manual | 7 quebras de regra crítica, cada uma com o teste ligado | `docs/testes/mutacao-manual.md` | Executado (registro no PR #11) |
-| Desempenho | Carga de disponibilidade e criação, uma rodada | `perf/reservas.jmx`, `docs/performance/` | Executado uma vez, em commit anterior |
-| Análise estática | SonarCloud, em push e PR | `.github/workflows/ci.yml` | Executado |
+| TG-01/02 Unitário e parametrizado | Regras de domínio e serviço, parametrizadas | `testes/`, `servico/` | Executado |
+| TG-03 Integração com PostgreSQL real | Restrição de exclusão, lock, trigger, atomicidade, manutenção | `persistencia/` (Testcontainers) | Executado |
+| TG-04 API caixa-preta | Matriz de autorização, validação de entrada, contratos HTTP | `api/` (MockMvc) | Executado |
+| TG-05 End-to-end | Fluxo completo por HTTP com aplicação real: login, pesquisa, reserva restrita, aprovação, uso, movimentação, auditoria, notificações; casos negativos de 401, 403 e vínculo | `e2e/FluxoEndToEndTest` (4 cenários) | Executado |
+| TG-06 Autorização e erros | Perfis, propriedade e tratamento de erro | `testes/RF15…`, `RF16…`, `api/MatrizAutorizacaoTest` | Executado |
+| TG-07 Concorrência | 20 solicitações simultâneas (dupla reserva); 20 simultâneas em período de manutenção | `persistencia/ConcorrenciaReservaPostgresTest`, `ConcorrenciaReservaHttpPostgresTest`, `ConcorrenciaManutencaoReservaPostgresTest` | Executado |
+| TG-08 WireMock | Calendário institucional simulado | `testes/IntegracaoCalendarioWireMockTest` | Executado |
+| TG-09 BDD/TDD | 80 cenários de transições, aprovação e bloqueio | `bdd/RodarCenariosTest`, `src/test/resources/features/` | Executado |
+| TG-10 Regressão | Teste de cada defeito corrigido | `docs/defeitos/` (DEF-007, DEF-009, DEF-010) | Executado |
+| TG-11 Carga | Consulta de disponibilidade e criação simultânea | `perf/reservas.jmx`, `scripts/analisar_jtl.py`, `.github/workflows/carga.yml` | Executado (3 rodadas); critério não atendido (seção 4.6) |
+| Mocks | Restrição: mock só em teste unitário isolado | Nenhum mock do Mockito em `src/test` (verificado por `grep`) | Atendida |
 
 ## 4. Resultados comparados às metas
 
-### 4.1 Cobertura (meta: linhas ≥ 80%, ramos ≥ 70%)
+### 4.1 Cobertura (meta: linhas ≥ 80 %, ramos ≥ 70 %)
 
-Fonte: `target/site/jacoco/jacoco.xml` gerado por `./mvnw -B verify` no commit `b4c94b1`.
+Fonte: `target/site/jacoco/jacoco.xml`, `./mvnw -B verify` com JDK 21.
 
 | Métrica | Coberto / total | Percentual | Meta | Situação |
-|---|---|---:|---:|---|
-| Linhas | 1090 / 1172 | 93,0% | ≥ 80% | **Atendida** |
-| Ramos | 452 / 518 | 87,3% | ≥ 70% | **Atendida** |
-| Instruções | 5979 / 6325 | 94,5% | — | Informativo |
-| Métodos | 303 / 306 | 99,0% | — | Informativo |
-| Classes | 61 / 61 | 100% | — | Informativo |
+|---|---:|---:|---:|---|
+| Linhas | 1258 / 1368 | 92,0 % | ≥ 80 % | **Atendida** |
+| Ramos | 541 / 646 | 83,7 % | ≥ 70 % | **Atendida** |
+| Instruções | 7080 / 7577 | 93,4 % | — | Informativo |
+| Métodos | 363 / 368 | 98,6 % | — | Informativo |
+| Classes | 73 / 73 | 100 % | — | Informativo |
 
-**Interpretação:** a meta de cobertura é atendida nos dois critérios. Cobertura alta não prova qualidade: as métricas são de execução, não de verificação. A prova de que os testes detectam defeitos está na mutação manual (seção 4.3).
-
-**Limite:** o relatório HTML foi lido em `target/site/jacoco/index.html` (totais), e não aberto num navegador.
-
-**Sonar, mesmo commit (`main`):** cobertura 91,2% e 3 bugs (ver seção 4.4). Os percentuais do Sonar e do JaCoCo diferem porque medem coisas diferentes.
+**Interpretação:** cobertura alta não prova qualidade. A evidência de que os testes detectam defeitos está na mutação manual (seção 4.3) e nos testes de concorrência e end-to-end.
 
 ### 4.2 Testes e CI
 
 | Verificação | Resultado | Evidência |
 |---|---|---|
-| `./mvnw -B verify` local, commit `b4c94b1` | BUILD SUCCESS; 624 testes, 0 falhas, 0 erros, 0 ignorados | Saída do Maven |
-| CI no GitHub, mesmo commit | Sucesso (run `43103127446`) | `gh run list --branch main` |
-| Quality gate SonarCloud, `main` | OK | API `qualitygates/project_status` |
-
-**Limite:** o CI roda `verify` no runner hospedado, e a execução local usa Docker local. As duas passaram; não há diferença observada entre elas.
+| `./mvnw -B verify` local, JDK 21 | BUILD SUCCESS; 643 testes, 0 falhas, 0 erros, 0 ignorados | Saída do Maven e `target/surefire-reports/` |
+| CI no GitHub do PR para `main` | Ver seção 4.7 | `gh run list` |
+| Quality gate SonarCloud do PR | Ver seção 4.4 | API do SonarCloud |
+| Carga no GitHub (workflow manual `carga.yml`) | Não executado ainda: o GitHub só aceita `workflow_dispatch` com o arquivo na branch padrão | — |
 
 ### 4.3 Eficácia dos testes: mutação manual
 
-Sete regras críticas foram quebradas uma de cada vez, em código de produção, e restauradas com `git restore` (`docs/testes/mutacao-manual.md`).
+Registro de 7 quebras feitas à mão em código de produção (`docs/testes/mutacao-manual.md`). **Essas quebras foram feitas sobre o commit `b4c94b1`, antes das mudanças desta entrega.** Não foram repetidas depois.
 
 | Regra | Quebra | Detectada? |
 |---|---|---|
 | Sobreposição de horários | `&&` por `\|\|` no predicado | Sim (RN-02, RN-03) |
-| Dupla reserva | Remoção do lock e da restrição EXCLUDE | Sim (4 de 4 execuções, `criadas (201): expected 1 but was 20`) |
+| Dupla reserva | Remoção do lock e da restrição EXCLUDE | Sim |
 | Aprovação de restrito | Qualquer não-dono aprova | Sim (RN-07, RF-15, matriz) |
 | Manutenção | Verificação de manutenção desligada | Sim (RN-04, revalidação) |
 | Autorização de cancelamento | Qualquer usuário cancela | Sim (matriz, RF-16, RF-15) |
-| Registro de auditoria | Transição sem evento no PostgreSQL | Sim (teste de atomicidade e BDD) |
+| Registro de auditoria | Transição sem evento no PostgreSQL | Sim |
 | Imutabilidade da auditoria | Trigger removido | Sim (`auditoriaEhSomenteInsercao`) |
 
-**Resultado:** 7 de 7 quebras detectadas. Nenhuma quebra ficou verde, então nenhuma lacuna nova exigiu teste.
-
-**Limite:** são 7 quebras, feitas à mão, e cada uma só testa uma alteração. Não é mutação automática. A mutação não cobre RF-01 (validação de assinatura do JWT) nem RF-19 (validação do token antes da operação), que tiveram execução mas não quebra.
+**Limite:** são 7 quebras, uma por vez, feitas à mão. Não é mutação automática, e não cobre a validação de assinatura do JWT.
 
 ### 4.4 Análise estática (meta: zero bugs ou vulnerabilidades críticas)
 
-Fonte: API do SonarCloud, projeto inteiro, branch `main`, em 2026-11-11.
+**Pendente de confirmação.** Os três bugs `java:S8700` registrados em `main` (`ServicoMovimentacoes`, `ServicoReservas` e `RF10MovimentacoesMaterialTest`) foram corrigidos na branch com conversão explícita para UTC (DEF-010). O resultado do SonarCloud para o PR será registrado aqui após a execução.
 
-| Métrica | Valor | Meta | Situação |
+| Métrica | Valor em `main` (2026-11-11) | Meta | Situação na branch |
 |---|---|---|---|
-| Vulnerabilidades | 0 | Zero críticas | **Atendida** |
-| Bugs críticos | 0 (todos os bugs são MAJOR) | Zero críticos | **Atendida** |
-| Bugs (todos) | **3** | Zero bugs (meta do pedido) | **Não atendida** |
-| Rating de segurança | 1,0 (A) | — | Informativo |
-| Rating de confiabilidade | 3,0 (C) | — | Informativo |
-| Code smells | 1 | — | Informativo |
-| Quality gate | OK | — | Atendido (o gate avalia código novo) |
+| Vulnerabilidades | 0 | Zero críticas | Aguarda SonarCloud do PR |
+| Bugs críticos | 0 | Zero críticos | Aguarda SonarCloud do PR |
+| Bugs (todos) | 3 (S8700) | Zero | Corrigidos na branch; aguarda SonarCloud |
+| Code smell | 1 (S8786, `VinculoResponsavelTest.java:64`) | — | Não tratado |
 
-Os três bugs são todos da regra `java:S8700` (duração calculada entre `LocalDateTime` sem fuso):
-- `ServicoMovimentacoes.java:63`, aberto em 2026-11-04;
-- `ServicoReservas.java:348`, aberto em 2026-11-04;
-- `RF10MovimentacoesMaterialTest.java:107`, aberto em 2026-11-04.
+### 4.5 Requisitos críticos na RTM (meta: 100 %)
 
-**Interpretação:** nenhum deles é crítico, e a regra alerta sobre fuso horário, não sobre cálculo errado (a aplicação usa `LocalDateTime` por contrato, com instantes em UTC no armazenamento). A correção aplicada em `ServicoRelatorios` (commit `4abcae1`) segue o mesmo raciocínio e foi aceita pelo gate. Os três permanecem abertos porque ninguém os tratou.
+Requisitos críticos = os marcados "Crítica" em `docs/RTM.md` §1.2, mais RNF-02, o driver D1 e a regra RN-04 sob concorrência. Detalhamento em `docs/RTM.md`, Anexo A.
 
-**Limite:** a meta do pedido diz "zero bugs ou vulnerabilidades críticas". Pelo texto, a meta de bugs não é cumprida; pela leitura de "críticas", é cumprida. Este relatório reporta o fato e não escolhe a leitura.
+| Requisito | Teste localizado | Situação |
+|---|---|---|
+| RF-01 | `testes/RF01AutenticacaoJwtTest`; `api/CatalogoLoginNotificacoesTest` (login) | Atendido |
+| RF-05 | `testes/RN02ExclusividadeAlocacaoTest` | Atendido |
+| RF-06 / RNF-02 | `persistencia/ConcorrenciaReservaPostgresTest`; `ConcorrenciaReservaHttpPostgresTest` | Atendido |
+| RF-15 | `testes/RF15ControleAcessoPerfilTest`; `api/MatrizAutorizacaoTest` | Atendido |
+| RF-16 | `testes/RF16PropriedadeReservaTest` | Atendido |
+| RF-19 | `testes/RF01AutenticacaoJwtTest`; `e2e/FluxoEndToEndTest` (`semTokenRecusa`) | Atendido |
+| RN-04 sob concorrência | `persistencia/ConcorrenciaManutencaoReservaPostgresTest` | Atendido (novo nesta entrega) |
+| D1 | `AplicacaoContextoTest` | Atendido |
 
-Também há um code smell (`S8786`, expressão regular com backtracking) em `VinculoResponsavelTest.java:64`, aberto em 2026-11-11.
+**Porcentagem:** 8 de 8 requisitos críticos com teste localizado e executado no build local = **100 %**. A detecção por mutação cobre 5 dos 8 (seção 4.3, não repetida).
 
-### 4.5 Requisitos críticos na RTM (meta: 100%)
+### 4.6 Desempenho (meta de referência: p95 ≤ 500 ms, erro < 1 %)
 
-Requisitos críticos = os marcados "Crítica" em `docs/RTM.md` §1.2, mais RNF-02 e o driver D1 (§1.5). São 8 itens. Detalhamento em `docs/testes/mutacao-manual.md`, seção 2.
+Fonte: `docs/performance/resultado-01.md` (rodada anterior, JDK 17) e `docs/performance/resultado-02.md` (três rodadas, versão atual).
 
-| Requisito | Teste localizado (caminho :: método) | Execução no commit | Mutação |
-|---|---|---|---|
-| RF-01 | `testes/RF01AutenticacaoJwtTest :: rf01_5_assinaturaAdulteradaEhRejeitada` | Sim | Não |
-| RF-05 | `testes/RN02ExclusividadeAlocacaoTest :: rn02_1_…`, `rn02_2_…` | Sim | Sim |
-| RF-06 | `persistencia/ConcorrenciaReservaPostgresTest :: vinteSolicitacoesSimultaneasGeramUmaReserva` | Sim | Sim |
-| RF-15 | `testes/RF15ControleAcessoPerfilTest :: rf15_s6_…`; `api/MatrizAutorizacaoTest :: respostaConformeAMatriz` | Sim | Sim |
-| RF-16 | `testes/RF16PropriedadeReservaTest :: rf16_2_alterarReservaAlheiaEhNegado` | Sim | Sim |
-| RF-19 | `testes/CoberturaRiscoAutenticacaoTest :: assinaturaNaoCanonicaRejeita401` | Sim | Não |
-| RNF-02 | Mesmos testes de RF-06 | Sim | Sim |
-| D1 | `AplicacaoContextoTest :: aplicacaoAtendeSolicitacaoDeReservaComBancoReal` | Sim | Não |
+| Rodada | Consulta (p95) | Criação (p95) | Erro | Veredito |
+|---|---:|---:|---:|---|
+| 01 (versão anterior) | 326 ms | 335 ms | 0 % | INCONCLUSIVO |
+| 02 | 870 ms | 906 ms | 0 % | **NÃO ATENDIDO** |
+| 03 | 880 ms | 909 ms | 0 % | **NÃO ATENDIDO** |
+| 04 | 950 ms | 995 ms | 0 % | **NÃO ATENDIDO** |
 
-**Porcentagens:**
-- Com teste localizado por caminho e nome, executado no commit: **8 de 8 = 100%**.
-- Com detecção por mutação: **5 de 8 = 62,5%**.
-- Anexo A da RTM (`docs/RTM.md`, §Anexo A) com caminhos de teste: 3 dos 8 críticos (RF-01, RF-06, RNF-02). RF-05, RF-15, RF-16, RF-19 e D1 não têm linha no Anexo A. A meta de 100% é cumprida pela matriz de mutação, não pelo Anexo A.
+**Causa identificada:** operações de reserva serializadas por `synchronized` com I/O dentro do lock, e uma conexão JDBC aberta por operação (DEF-008, aberto). O grupo decidiu não tratar desempenho nesta entrega. O requisito de desempenho **não está atendido**.
 
-**Limite:** "executado no commit" usa o CI do próprio commit `b4c94b1`, que passou. A meta de 100% na RTM depende da definição de "rastreado"; com a definição mais estrita (linha no Anexo A), a meta não é cumprida.
+Erro real 0 % e respostas somente 201 ou 409 nas três rodadas: os critérios de erro (RNF-06-P1 e P2) estão atendidos.
 
-### 4.6 Desempenho (meta de referência: p95 ≤ 500 ms, erro < 1%)
+### 4.7 CI do PR
 
-Fonte: `docs/performance/resultado-01.md`.
-
-| Operação | p95 medido | Erro real | Situação |
-|---|---:|---:|---|
-| Consulta de disponibilidade | 326 ms | 0% | Dentro da meta, em uma rodada |
-| Criação de reserva | 335 ms (todas respostas 409) | 0% | Dentro da meta, mas sem criação bem-sucedida suficiente |
-
-**Decisão do próprio documento: INCONCLUSIVO.** Motivos: uma rodada só (o `rnf.md` exige três), ambiente não isolado, 4 reservas no banco (premissa era 10.000), e 3.986 de 3.987 POSTs foram recusados.
-
-**Limite que pesa mais:** a medição é de um commit anterior. O código mudou em D3, D4 e D5. Em particular, o plano usa token de administrador para a consulta (`GET /reservas?recursoId=`), e a decisão D4 impede esse token. **Com o código atual, o plano de carga não roda como está.** O desempenho do commit atual não foi medido.
+**Pendente.** Preenchido após a execução do `ci.yml` no PR para `main`: número do run, resultado do `verify` e do passo SonarCloud.
 
 ## 5. Defeitos
 
 Fonte: `docs/defeitos/`.
 
-| Defeito | Severidade | Situação | Commit da correção |
+| Defeito | Severidade | Situação | Teste de regressão |
 |---|---|---|---|
-| DEF-001 — Dupla reserva sob solicitações simultâneas | Crítica | Corrigido | Ver ADR-016 e DEF-002 |
-| DEF-002 — Deadlock em solicitações simultâneas | Alta | Corrigido | Lock pessimista por recurso |
-| DEF-003 — Erros fora do ProblemDetail | Média | Corrigido | `dbe1fd4` |
-| DEF-004 — Exceção vazando detalhe interno | Alta | Corrigido | `93d7dc5` |
-| DEF-005 — Capacidade negativa aceita | Média | Corrigido | `568f352` |
-| DEF-006 — Campo ausente sem mensagem clara | Média | Corrigido | `5ee2077` |
+| DEF-001 — Dupla reserva sob solicitações simultâneas | Crítica | Corrigido | `ConcorrenciaReservaPostgresTest` |
+| DEF-002 — Deadlock em solicitações simultâneas | Alta | Corrigido | Testes de concorrência |
+| DEF-003 — Erros fora do ProblemDetail | Média | Corrigido | `ValidacaoEntradaTest` |
+| DEF-004 — Exceção vazando detalhe interno | Alta | Corrigido | `ValidacaoEntradaTest.falhaInternaNaoVazaDetalhes` |
+| DEF-005 — Capacidade negativa aceita | Média | Corrigido | `ValidacaoEntradaTest` |
+| DEF-006 — Campo ausente sem mensagem clara | Média | Corrigido | `ValidacaoEntradaTest.inicioAusente`, `recursoAusente` |
+| DEF-007 — Responsável vê solicitações de recursos não vinculados | Alta | Corrigido | `CoberturaRiscoReservasTest.pendentesSoDeRecursoVinculado`; `FluxoEndToEndTest.responsavelSemVinculoNaoAprova` |
+| DEF-008 — Operações de reserva serializadas: latência alta sob carga | Alta (desempenho) | **Aberto** | Rodadas de carga (seção 4.6) |
+| DEF-009 — README descreve funcionalidades inexistentes | Média | Corrigido | Verificação manual; README e `docs/api.md` |
+| DEF-010 — Sonar S8700: duração entre datas sem fuso | Média (MAJOR) | Corrigido na branch; confirmação pendente no SonarCloud | `RF10MovimentacoesMaterialTest` |
 
-**Totais:** 6 defeitos documentados. Por severidade: 1 crítica, 2 altas, 3 médias. Abertos: 0.
+**Totais:** 10 defeitos documentados. Abertos: 1 (DEF-008, desempenho).
 
-**Limite:** o registro cobre só defeitos encontrados pelos testes deste projeto e pela mutação manual. Os 3 bugs do Sonar (seção 4.4) não estão em `docs/defeitos/`. Não há contagem de defeitos de produção, porque a aplicação não tem usuários reais.
+**Limite:** o registro cobre defeitos encontrados por testes, por mutação, por análise de código e pelas rodadas de carga. Não há contagem de defeitos de produção.
 
 ## 6. Riscos residuais
 
-| Risco | Evidência | Impacto | Mitigação atual |
+| Risco | Evidência | Impacto | Mitigação |
 |---|---|---|---|
-| Sem login real: não há como um usuário obter token sem o endpoint de laboratório | `POST /dev/tokens` é o único emissor, e é desligado por padrão (PEN-01b) | Alto para uso real | Nenhuma no código |
-| Sem token de administrador pela API (decisão D4) | `AplicacaoContextoTest`, `DesenvolvimentoTokensControllerTest` | Operações de cadastro, manutenção e vínculo só por banco | Roteiro de execução manual |
-| Laboratório de carga quebrado pelo D4 | `perf/reservas.jmx` usa token de administrador | Não é possível repetir a medição de desempenho | Nenhuma no código |
-| Desempenho não medido no commit atual | Seção 4.6 | Não se sabe se a meta vale hoje | Rodada única, anterior |
-| Concorrência entre manutenção e reserva sem teste | PEN-02; não há teste concorrente de manutenção (`grep` nas classes de teste) | Possível reserva em horário bloqueado sob concorrência | O código trava o recurso nos dois caminhos do PostgreSQL, mas não há teste que prove isso |
-| Funções ausentes da especificação | D2 e seção 2.2 | Escopo incompleto | Registrado em PEN-05 a PEN-08 |
-| Decisões de produto abertas | Quem vê histórico e relatórios; ator de início de uso, conclusão e não comparecimento (P7); AMB-02 | Regras podem mudar | Decisões do projeto registradas |
-| Bugs S8700 abertos | Seção 4.4 | Baixo | Nenhum |
-| Mutação não cobre validação de JWT | Seção 4.3 | Possível regressão na validação de assinatura | Testes existem e passam |
+| Desempenho acima da meta sob carga | Seção 4.6; DEF-008 | Alto para o requisito RNF-03/RNF-04 | Nenhuma nesta entrega |
+| Usuários e movimentações em memória | `docs/api.md`; README | Perda de dados ao reiniciar | Decisão do grupo, documentada |
+| Interface não verificada visualmente | Seção 2.2 | Possível problema de layout em telas reais | Teste de conteúdo e end-to-end |
+| Mutação de 2026-11-11 não repetida | Seção 4.3 | Regressão possível não detectada pela mutação | Testes de regressão e E2E cobrem os mesmos fluxos |
+| Quality gate do SonarCloud | Seção 4.4 | Bugs S8700 podem permanecer se a correção não for reconhecida | Confirmação no PR |
 
 ## 7. Recomendação
 
-**Não recomendo apresentar o sistema como entrega completa.** O núcleo de reservas, a autorização por perfil e o contrato de erro têm evidência forte: testes em vários níveis, cobertura acima da meta, CI verde, mutação das regras críticas detectada e nenhum defeito aberto.
+**Apresentar como entrega com ressalvas explícitas**, por causa do desempenho:
 
-**Recomendo apresentar com as seguintes ressalvas explícitas:**
-1. Não há login real. A segurança depende de um endpoint de laboratório, que a documentação já marca como não-produtivo.
-2. As funções de gestão de recursos, usuários, movimentações, relatórios além do de utilização e notificações não existem por HTTP.
-3. O desempenho não foi medido no commit atual, e o plano de carga precisa de atualização antes de ser executado de novo.
-4. Os três bugs de regra S8700 continuam abertos. A meta literal de zero bugs não é cumprida.
+1. Login, autorização por perfil, catálogo, reservas, aprovação, movimentações, notificações, interface e end-to-end estão implementados e testados.
+2. Dupla reserva e reserva em manutenção são protegidas e testadas sob concorrência.
+3. O requisito de desempenho (p95 ≤ 500 ms) **não é atendido**, com causa identificada (DEF-008).
+4. Usuários e movimentações são mantidos em memória.
 
-**Ações antes de uma entrega completa, em ordem de prioridade:**
-1. Implementar autenticação real (PEN-01b).
-2. Atualizar o plano JMeter para o novo fluxo de autenticação e repetir a medição em três rodadas no commit atual (`rnf.md`, seção 5).
-3. Tratar os três bugs S8700 ou registrar a decisão de aceitá-los.
-4. Escrever o teste de concorrência manutenção × reserva (PEN-02).
-5. Completar as rotas de movimentação e relatórios (PEN-07) e de gestão de recursos (PEN-05).
+**Próximos passos recomendados, se houver tempo:** tratar DEF-008 (remover I/O do lock e usar pool de conexões), repetir as três rodadas em ambiente de referência, e persistir usuários e movimentações.

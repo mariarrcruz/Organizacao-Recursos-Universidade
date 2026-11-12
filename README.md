@@ -205,6 +205,7 @@ Requer Docker, porque os testes de persistência e os cenários BDD sobem Postgr
 - testes unitários de regras (`testes/`, `servico/`);
 - testes de API com MockMvc (`api/`);
 - testes de persistência e concorrência contra PostgreSQL real (`persistencia/`);
+- testes end-to-end com a aplicação em porta real e PostgreSQL em contêiner (`e2e/`);
 - cenários BDD em `src/test/resources/features/`;
 - gate de cobertura JaCoCo.
 
@@ -215,6 +216,8 @@ Os testes seguem o ciclo vermelho → verde → refatoração; os commits `test(
 ## Integração contínua
 
 `.github/workflows/ci.yml` roda `./mvnw -B verify` em cada pull request e em cada push para `main`, em JDK 21. A análise do SonarCloud roda após o `verify` quando o segredo está disponível. Os runs mais recentes estão verdes (verificado com `gh run list`).
+
+O workflow manual `.github/workflows/carga.yml` roda as rodadas do JMeter (`perf/reservas.jmx`) e aplica os critérios de `scripts/analisar_jtl.py`. Não roda em PR, porque leva vários minutos.
 
 ---
 

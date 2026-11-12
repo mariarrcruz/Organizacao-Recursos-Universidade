@@ -14,38 +14,47 @@ Sobe `postgres:16-alpine` em `localhost:5432` (banco, usuário e senha `organiza
 
 ```
 ./mvnw -B -DskipTests package
-java -jar target/organizacao-recursos-0.1.0-SNAPSHOT.jar --app.dev.tokens=true
+APP_BOOTSTRAP_ADMIN_ID=admin APP_BOOTSTRAP_ADMIN_SENHA='uma-senha-com-8-ou-mais' \
+  java -jar target/organizacao-recursos-0.1.0-SNAPSHOT.jar
 ```
 
-Na subida, o esquema é criado no banco (ADR-017). A aplicação escuta em `http://localhost:8080`.
+Na subida, o esquema é criado no banco (ADR-017) e, se ainda não houver administrador, o primeiro é semeado a partir das variáveis de ambiente. A senha nunca fica no repositório. A aplicação escuta em `http://localhost:8080`.
 
-`--app.dev.tokens=true` habilita `POST /dev/tokens`, só para laboratório. Ele emite um JWT para o `sub` e os `perfis` informados:
+Para a demonstração e para a carga, pode-se ligar também o token de laboratório (`--app.dev.tokens=true`, `POST /dev/tokens`, sem senha e sem perfil `ADMINISTRADOR`). Fora do laboratório, mantenha desligado.
 
-```
-curl -s -X POST http://localhost:8080/dev/tokens -H 'Content-Type: application/json' \
-     -d '{"sub":"prof1","perfis":["SOLICITANTE"]}'
-```
+## 3. Fluxo mínimo (somente pela API)
 
-O token de laboratório não emite `ADMINISTRADOR` (D4): a requisição responde `400`. Por isso as operações de Administrador (cadastro de recursos, manutenções e vínculos de Responsável) não são alcançáveis pela API. Prepare-as direto no banco, como no passo 3. Fora do laboratório, mantenha `app.dev.tokens=false`. O login real por credenciais ainda não existe (PEN-01b).
+Não é preciso mexer no banco. Substitua `$ADM` pelo token do administrador.
 
-## 3. Fluxo mínimo
-
-1. Cadastrar um recurso direto no banco (a API não emite token de Administrador):
+1. Entrar como administrador:
 
 ```
-docker compose exec postgres psql -U organizacao -d organizacao -c \
-  "INSERT INTO recurso (id, tipo, nome, localizacao, capacidade, restrito, status, competencias) VALUES ('SALA-1','SALA','Sala 1','BLOCO_A',30,true,'DISPONIVEL','');"
-```
-2. Solicitar reserva (perfil SOLICITANTE): `POST /reservas`.
-3. Vincular o Responsável ao recurso, também no banco (D3):
-
-```
-docker compose exec postgres psql -U organizacao -d organizacao -c \
-  "INSERT INTO vinculo_responsavel (responsavel_id, recurso_id) VALUES ('resp1','SALA-1');"
+ADM=$(curl -s -X POST localhost:8080/auth/login -H 'Content-Type: application/json' \
+  -d '{"id":"admin","senha":"uma-senha-com-8-ou-mais"}' | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
 ```
 
-4. Aprovar (perfil RESPONSAVEL vinculado ao recurso, só recurso restrito): `POST /reservas/{id}/aprovacao`.
-4. Consultar auditoria: `GET /reservas/{id}/auditoria`.
+2. Cadastrar um recurso restrito, um Solicitante e um Responsável:
+
+```
+curl -s -X POST localhost:8080/recursos -H "Authorization: Bearer $ADM" -H 'Content-Type: application/json' \
+  -d '{"id":"SALA-1","tipo":"SALA","nome":"Sala 1","localizacao":"BLOCO_A","capacidade":30,"restrito":true,"status":"DISPONIVEL","competencias":[]}'
+curl -s -X POST localhost:8080/usuarios -H "Authorization: Bearer $ADM" -H 'Content-Type: application/json' \
+  -d '{"id":"prof1","senha":"senha-prof-2026","perfis":["SOLICITANTE"]}'
+curl -s -X POST localhost:8080/usuarios -H "Authorization: Bearer $ADM" -H 'Content-Type: application/json' \
+  -d '{"id":"resp1","senha":"senha-resp-2026","perfis":["RESPONSAVEL"]}'
+```
+
+3. Vincular o Responsável ao recurso (D3): `POST /vinculos` com `{"responsavelId":"resp1","recursoId":"SALA-1"}`.
+
+4. O Solicitante entra, pesquisa e reserva: `POST /auth/login`, `GET /recursos?tipo=SALA`, `POST /reservas`. O recurso é restrito, então a reserva nasce `SOLICITADA`.
+
+5. O Responsável entra, vê a fila e aprova: `GET /reservas/pendentes`, depois `POST /reservas/{id}/aprovacao`.
+
+6. O Solicitante recebe a notificação: `GET /notificacoes`.
+
+7. Auditoria da reserva (Responsável ou Administrador): `GET /reservas/{id}/auditoria`.
+
+A página em `http://localhost:8080/` faz os mesmos passos pelo navegador. Contratos completos em [`docs/api.md`](api.md).
 
 ## 4. Testes
 
@@ -53,4 +62,6 @@ docker compose exec postgres psql -U organizacao -d organizacao -c \
 ./mvnw -B verify
 ```
 
-Roda os testes unitários, os cenários BDD contra PostgreSQL (contêiner via Testcontainers), os testes de concorrência e os testes WireMock. Requer Docker.
+Roda os testes unitários, os cenários BDD contra PostgreSQL (contêiner via Testcontainers), os testes de concorrência, os testes WireMock e os testes end-to-end (`FluxoEndToEndTest`, aplicação em porta real). Requer Docker.
+
+Testes de carga (JMeter) não fazem parte do `verify`. Ver `docs/performance/`.
