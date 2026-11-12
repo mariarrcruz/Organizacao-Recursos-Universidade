@@ -145,8 +145,11 @@ Fontes: `docs/performance/resultado-01.md` (rodada anterior, JDK 17), `resultado
 | 05 | 3 ms | 39 ms | 0 % | ATENDIDO |
 | 06 | 3 ms | 38 ms | 0 % | ATENDIDO |
 | 07 | 3 ms | 39 ms | 0 % | ATENDIDO |
+| GitHub, workflow `carga.yml` (execução `43322490773`, 3 rodadas, runner do GitHub) | 1 ms | ver nota | 0 % | ATENDIDO |
 
 **Causa corrigida (DEF-008):** o serviço de reservas serializava todas as operações com um monitor Java em volta de I/O de banco, e cada operação abria uma conexão nova. A correção remove o monitor, usa pool de conexões e deixa a atomicidade com o armazenamento (transação, lock consultivo e `EXCLUDE` no PostgreSQL). Os testes de concorrência e de regra continuam passando.
+
+**Carga no GitHub:** o workflow `carga.yml` (manual, na `main` após o PR #15) rodou as três rodadas no runner hospedado do GitHub, com JMeter 5.6.3 do arquivo oficial da Apache. A execução `43322490773` terminou com sucesso e os três vereditos foram ATENDIDO, com erro 0 %. A consulta teve p95 de 1 ms nas três rodadas. Os números de criação não aparecem no log consultado, e não consegui baixar o artefato `carga-jmeter`, então ficam registrados apenas o veredito e a consulta. Esse runner tem outra máquina e 4 núcleos, então não substitui a medição de referência.
 
 **Ressalva:** as rodadas 05 a 07 foram feitas na mesma máquina de desenvolvimento, com duas IDEs Java abertas. Não é o ambiente de referência do `rnf.md` §5. O requisito está atendido nessa medição, mas o limite não deve ser tratado como fixado até uma medição em ambiente de referência.
 
