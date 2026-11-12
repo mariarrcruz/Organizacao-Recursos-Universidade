@@ -4,7 +4,7 @@
 
 - **Código de produção e testes** foram escritos no histórico git pelo Iago. Maria, Thais e Thales respondem sobre o código.
 - **Documentos de arquitetura, requisitos e personas** foram escritos por Maria (personas, PRD, RFC, `arquitetura.md`) e Thales (ATAM). Thais atualizou o RTM. Iago responde sobre esses documentos.
-- **Limite da atribuição:** todos os 12 PRs mesclados foram abertos pela mesma conta do GitHub. A autoria por arquivo vem do histórico de commits, e não é confirmada pelos PRs. A divisão é a documentada em `docs/status-requisitos.md`, §6.
+- **Limite da atribuição:** todos os PRs mesclados (#1 a #19) foram abertos pela mesma conta do GitHub. A autoria por arquivo vem do histórico de commits, e não é confirmada pelos PRs. A divisão é a documentada em `docs/status-requisitos.md`, §6.
 
 **Formato da resposta esperada:** oral, com referência ao arquivo indicado. "Resposta fraca" descreve o que a banca não deve aceitar.
 
@@ -45,7 +45,7 @@
 - *Resposta fraca:* "Usamos JWT com assinatura e testamos." (Não cita o que é validado: assinatura, expiração, emissor, audiência e perfis. Também não diz que o emissor de tokens é o endpoint de laboratório, que existe apenas com o flag ligado.)
 
 **M4. Uma falha de banco no meio de uma requisição pode vazar SQL ou nome de classe para o cliente? Mostre onde isso é impedido e o teste que o verifica.**
-- *Onde está a resposta:* `src/main/java/com/organizacao/recursos/api/TratadorErros.java`, método `falhaInesperada`; `src/test/java/com/organizacao/recursos/api/ValidacaoEntradaTest.java :: falhaInternaNaoVazaDetalhes`; `src/test/java/com/organizacao/recursos/api/MatrizAutorizacaoTest.java`, constante `VAZAMENTO`.
+- *Onde está a resposta:* `src/main/java/com/organizacao/recursos/api/TratadorErros.java`, método `falhaInesperada`; `src/test/java/com/organizacao/recursos/api/ValidacaoEntradaTest.java :: falhaInternaNaoVazaDetalhes`; `src/test/java/com/organizacao/recursos/api/ValidacaoEntradaTest.java`, constante `VAZAMENTO` (os padrões que o teste procura no corpo da resposta).
 - *Resposta fraca:* "O tratador de erros devolve mensagem genérica." (Não explica que a mensagem técnica vai para o log do servidor, nem qual padrão o teste usa para detectar vazamento.)
 
 ---
@@ -53,19 +53,19 @@
 ## Thais Rodrigues — perguntas sobre código escrito pelo Iago (4)
 
 **T1. Há duas estratégias de bloqueio por recurso no PostgreSQL: `SELECT ... FOR UPDATE` e `pg_advisory_xact_lock`. Qual delas o caminho de produção usa, por quê, e qual é a outra para?**
-- *Onde está a resposta:* `src/main/java/com/organizacao/recursos/persistencia/ArmazenamentoPostgres.java`, método `travarRecurso` (advisory lock); `src/main/java/com/organizacao/recursos/persistencia/RepositorioReservasPostgres.java`, método `solicitar` (`FOR UPDATE`); `src/main/java/com/organizacao/recursos/servico/ServicoReservas.java` (qual armazenamento é injetado).
+- *Onde está a resposta:* `src/main/java/com/organizacao/recursos/persistencia/ArmazenamentoPostgres.java`, método `travarRecurso` (advisory lock); `src/main/java/com/organizacao/recursos/persistencia/RepositorioReservasPostgres.java`, método `solicitar` (`FOR UPDATE`); `src/main/java/com/organizacao/recursos/ConfiguracaoAplicacao.java` (qual armazenamento é injetado em `ServicoReservas`).
 - *Resposta fraca:* "As duas evitam deadlock, então tanto faz." (Não percebe que uma das classes é usada apenas por testes, e que a aplicação usa outra.)
 
-**T2. Num ponto dos testes usamos Mockito para o armazenamento, e em outros usamos PostgreSQL real (Testcontainers). Por que essa escolha, e o que o teste com mock não consegue provar?**
-- *Onde está a resposta:* `src/test/java/com/organizacao/recursos/api/ValidacaoEntradaTest.java :: falhaInternaNaoVazaDetalhes` (Mockito, `mock(Armazenamento.class)`); `src/test/java/com/organizacao/recursos/persistencia/ArmazenamentoPostgresTest.java` (Testcontainers); `src/test/java/com/organizacao/recursos/testes/RN02ExclusividadeAlocacaoTest.java` (implementação em memória, `ArmazenamentoMemoria`).
-- *Resposta fraca:* "Mock é mais rápido que o banco." (Confunde mock e implementação em memória, e não diz o que só o banco real prova, como a restrição EXCLUDE e o trigger de auditoria.)
+**T2. Num ponto dos testes usamos um armazenamento de teste escrito à mão, em vez de mock; em outros usamos a implementação em memória; e em outros usamos PostgreSQL real (Testcontainers). Por que essa escolha, e o que o teste sem banco não consegue provar?**
+- *Onde está a resposta:* `src/test/java/com/organizacao/recursos/api/ValidacaoEntradaTest.java :: falhaInternaNaoVazaDetalhes` (classe `ArmazenamentoComFalhaEmListagem`, escrita à mão, que delega ao armazenamento em memória e falha só na listagem de reservas; não há Mockito em `src/test`); `src/test/java/com/organizacao/recursos/persistencia/ArmazenamentoPostgresTest.java` (Testcontainers); `src/test/java/com/organizacao/recursos/testes/RN02ExclusividadeAlocacaoTest.java` (implementação em memória, `ArmazenamentoMemoria`).
+- *Resposta fraca:* "Mock é mais rápido que o banco." (Confunde dublê de teste com implementação em memória, e não diz o que só o banco real prova, como a restrição EXCLUDE, o trigger de auditoria e os locks.)
 
 **T3. Por que os conflitos evitados ficam numa tabela própria (`conflito_reserva`), e não no `evento_auditoria`? O que acontece com essa contagem se a recusa estiver numa transação que sofre rollback?**
 - *Onde está a resposta:* `src/main/java/com/organizacao/recursos/servico/ServicoReservas.java`, método `verificarDisponibilidade` (chamada a `registrarConflito`); `src/main/resources/db/schema.sql` (tabela `conflito_reserva`); `src/main/java/com/organizacao/recursos/persistencia/ArmazenamentoPostgres.java`, método `registrarConflitoAposRecusa`; `docs/rtm.md`, §3.13.
-- *Resposta fraca:* "Porque é outra métrica." (Não cita a regra RN-09.10, segundo a qual recusa não muda estado e, portanto, não gera auditoria. Também não explica por que a corrida registra conflito em conexão própria.)
+- *Resposta fraca:* "Porque é outra métrica." (Não cita a regra de auditoria do PRD (RN-09): recusa não muda o estado da reserva e, portanto, não gera evento. Também não explica por que o conflito é gravado em conexão própria, para sobreviver ao rollback.)
 
-**T4. Os três bugs `S8700` do SonarCloud estão na `main`. O que a regra alerta, por que o quality gate não reprova o projeto, e qual é o risco real?**
-- *Onde está a resposta:* `docs/relatorio-qualidade.md`, seção 4.4; `src/main/java/com/organizacao/recursos/servico/ServicoMovimentacoes.java`, linha 63; `src/main/java/com/organizacao/recursos/servico/ServicoRelatorios.java`, método `duracaoNoPeriodo` (correção aplicada).
+**T4. Os três bugs `S8700` do SonarCloud estavam na `main` até a correção do DEF-010. O que a regra alerta, por que o quality gate não reprovou o projeto, e qual é o risco real?**
+- *Onde está a resposta:* `docs/relatorio-qualidade.md`, seção 4.4; `src/main/java/com/organizacao/recursos/servico/ServicoMovimentacoes.java`, linha 64 (conversão para UTC, DEF-010); `src/main/java/com/organizacao/recursos/servico/ServicoRelatorios.java`, método `duracaoNoPeriodo` (correção aplicada).
 - *Resposta fraca:* "São bugs, e o projeto deveria ter zero bugs." (Não distingue o alerta de fuso do erro de cálculo, não diz que o gate avalia código novo, e não sabe a severidade.)
 
 ---
