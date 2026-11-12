@@ -18,6 +18,11 @@ import java.util.Optional;
  */
 public final class ArmazenamentoMemoria implements Armazenamento {
 
+    private static final java.util.Set<com.organizacao.recursos.dominio.EstadoReserva> ATIVAS_NO_ARMAZENAMENTO =
+            java.util.EnumSet.of(com.organizacao.recursos.dominio.EstadoReserva.SOLICITADA,
+                    com.organizacao.recursos.dominio.EstadoReserva.APROVADA,
+                    com.organizacao.recursos.dominio.EstadoReserva.EM_USO);
+
     private final List<Reserva> reservas = new ArrayList<>();
     private final List<Manutencao> manutencoes = new ArrayList<>();
     private final List<EventoAuditoria> eventos = new ArrayList<>();
@@ -37,6 +42,16 @@ public final class ArmazenamentoMemoria implements Armazenamento {
 
     @Override
     public synchronized void inserirReserva(Reserva reserva, EventoAuditoria evento) {
+        // Contrato da porta: recusa com 409 se houver manutenção ou reserva ativa sobreposta (atômico aqui).
+        String recursoId = reserva.getRecurso().id();
+        boolean sobrepoeManutencao = manutencoes.stream().anyMatch(m -> m.recursoId().equals(recursoId)
+                && m.inicio().isBefore(reserva.getFim()) && reserva.getInicio().isBefore(m.fim()));
+        boolean sobrepoeReserva = reservas.stream().anyMatch(r -> r.getRecurso().id().equals(recursoId)
+                && ATIVAS_NO_ARMAZENAMENTO.contains(r.getEstado())
+                && r.getInicio().isBefore(reserva.getFim()) && reserva.getInicio().isBefore(r.getFim()));
+        if (sobrepoeManutencao || sobrepoeReserva) {
+            throw new com.organizacao.recursos.dominio.ErroAplicacao(409, "Conflito de horário para o recurso " + recursoId);
+        }
         reservas.add(reserva);
         if (evento != null) {
             eventos.add(evento);
@@ -84,6 +99,16 @@ public final class ArmazenamentoMemoria implements Armazenamento {
     @Override
     public synchronized Optional<Recurso> buscarRecurso(String id) {
         return Optional.ofNullable(recursos.get(id));
+    }
+
+    @Override
+    public synchronized List<Recurso> listarRecursos() {
+        return recursos.values().stream().sorted(java.util.Comparator.comparing(Recurso::id)).toList();
+    }
+
+    @Override
+    public synchronized void removerRecurso(String id) {
+        recursos.remove(id);
     }
 
     @Override

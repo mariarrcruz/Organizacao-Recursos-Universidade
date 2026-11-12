@@ -2,6 +2,7 @@ package com.organizacao.recursos.testes;
 
 import static com.organizacao.recursos.testes.Fixtures.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.organizacao.recursos.dominio.*;
 import com.organizacao.recursos.servico.ServicoReservas;
@@ -171,9 +172,18 @@ class CoberturaRiscoReservasTest {
         ServicoReservas s = servicoEm(t("09:00"));
         s.registrarExistente(reserva("R1", alice, sala, "10:00", "11:00", EstadoReserva.SOLICITADA));
         s.registrarExistente(reserva("R2", alice, sala, "12:00", "13:00", EstadoReserva.APROVADA));
+        s.vincularResponsavel(admin, "resp", "S1");
         assertEquals(1, s.pendentesDeAnalise(resp).size());
         assertEquals("R1", s.pendentesDeAnalise(resp).get(0).getId());
         assertErro(403, () -> s.pendentesDeAnalise(alice));
+    }
+
+    @Test
+    @DisplayName("Pendentes de análise: Responsável sem vínculo com o recurso não vê a solicitação")
+    void pendentesSoDeRecursoVinculado() {
+        ServicoReservas s = servicoEm(t("09:00"));
+        s.registrarExistente(reserva("R1", alice, sala, "10:00", "11:00", EstadoReserva.SOLICITADA));
+        assertTrue(s.pendentesDeAnalise(resp).isEmpty());
     }
 
     @Test

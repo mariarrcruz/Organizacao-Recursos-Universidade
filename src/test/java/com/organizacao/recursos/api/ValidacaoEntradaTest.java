@@ -2,20 +2,25 @@ package com.organizacao.recursos.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.organizacao.recursos.dominio.ConflitoReserva;
+import com.organizacao.recursos.dominio.EventoAuditoria;
+import com.organizacao.recursos.dominio.Manutencao;
+import com.organizacao.recursos.dominio.Recurso;
+import com.organizacao.recursos.dominio.Reserva;
 import com.organizacao.recursos.persistencia.Armazenamento;
+import com.organizacao.recursos.persistencia.ArmazenamentoMemoria;
 import com.organizacao.recursos.servico.ServicoAutenticacao;
 import com.organizacao.recursos.servico.ServicoReservas;
 import java.io.IOException;
 import java.time.Clock;
+import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
@@ -131,10 +136,8 @@ class ValidacaoEntradaTest {
     @Test
     @DisplayName("Erro interno — falha do armazenamento vira 500 genérico, sem SQL, classe nem stack trace")
     void falhaInternaNaoVazaDetalhes() throws Exception {
-        Armazenamento falho = mock(Armazenamento.class);
-        when(falho.buscarRecurso(any())).thenReturn(java.util.Optional.of(MundoAutorizacao.recurso("SALA-V", false)));
-        when(falho.listarReservas()).thenThrow(new IllegalStateException(
-                "Falha de banco: SELECT * FROM reserva WHERE recurso_id = 'SALA-V' (org.postgresql.util.PSQLException)"));
+        Armazenamento falho = new ArmazenamentoComFalhaEmListagem(new ArmazenamentoMemoria());
+        falho.gravarRecurso(MundoAutorizacao.recurso("SALA-V", false));
         ServicoAutenticacao auth = mundo.auth;
         ServicoReservas servico = new ServicoReservas(MundoAutorizacao.RELOGIO, falho);
         MockMvc falhaMvc = MockMvcBuilders.standaloneSetup(new ReservasController(servico, auth, falho))
@@ -143,5 +146,37 @@ class ValidacaoEntradaTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"recursoId\":\"SALA-V\",\"inicio\":\"2026-11-05T18:00\",\"fim\":\"2026-11-05T19:00\"}")).andReturn();
         assertProblema(r, 500, "erro interno");
+    }
+
+    /**
+     * Armazenamento real (memória) que falha na listagem de reservas. Não é mock: delega tudo ao
+     * armazenamento verdadeiro e só simula a falha de leitura do banco.
+     */
+    static final class ArmazenamentoComFalhaEmListagem implements Armazenamento {
+        private final Armazenamento real;
+
+        ArmazenamentoComFalhaEmListagem(Armazenamento real) { this.real = real; }
+
+        @Override public Optional<Reserva> buscarReserva(String id) { return real.buscarReserva(id); }
+        @Override public List<Reserva> listarReservas() {
+            throw new IllegalStateException(
+                    "Falha de banco: SELECT * FROM reserva WHERE recurso_id = 'SALA-V' (org.postgresql.util.PSQLException)");
+        }
+        @Override public void inserirReserva(Reserva reserva, EventoAuditoria evento) { real.inserirReserva(reserva, evento); }
+        @Override public void atualizarReserva(Reserva reserva, EventoAuditoria evento, boolean revalidarManutencao) {
+            real.atualizarReserva(reserva, evento, revalidarManutencao);
+        }
+        @Override public void removerReserva(String id, EventoAuditoria evento) { real.removerReserva(id, evento); }
+        @Override public void inserirManutencao(Manutencao manutencao) { real.inserirManutencao(manutencao); }
+        @Override public List<Manutencao> listarManutencoes() { return real.listarManutencoes(); }
+        @Override public List<EventoAuditoria> listarEventos() { return real.listarEventos(); }
+        @Override public void gravarRecurso(Recurso recurso) { real.gravarRecurso(recurso); }
+        @Override public List<Recurso> listarRecursos() { return real.listarRecursos(); }
+        @Override public void removerRecurso(String id) { real.removerRecurso(id); }
+        @Override public Optional<Recurso> buscarRecurso(String id) { return real.buscarRecurso(id); }
+        @Override public void registrarConflito(ConflitoReserva conflito) { real.registrarConflito(conflito); }
+        @Override public List<ConflitoReserva> listarConflitos() { return real.listarConflitos(); }
+        @Override public void gravarVinculo(String responsavelId, String recursoId) { real.gravarVinculo(responsavelId, recursoId); }
+        @Override public boolean existeVinculo(String responsavelId, String recursoId) { return real.existeVinculo(responsavelId, recursoId); }
     }
 }

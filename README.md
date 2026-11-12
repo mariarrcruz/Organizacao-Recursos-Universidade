@@ -22,7 +22,7 @@ Acesso sem token recebe `401`. Perfil sem permissão recebe `403`. Transição i
 
 | Componente | Versão | Função |
 |---|---|---|
-| Java | 17 (`pom.xml`); CI em JDK 21 | Linguagem |
+| Java | 21 (`pom.xml`, CI em JDK 21) | Linguagem |
 | Spring Boot | 3.2.5 | Aplicação web (Spring MVC) |
 | PostgreSQL | 16 | Persistência (`docker-compose.yml`) |
 | Testcontainers | 1.20.x | Testes de integração com PostgreSQL real |
@@ -57,9 +57,22 @@ java -jar target/organizacao-recursos-0.1.0-SNAPSHOT.jar --app.dev.tokens=true
 
 A aplicação escuta em `http://localhost:8080`. O esquema é criado na subida (`src/main/resources/db/schema.sql`).
 
-### Obter um token (somente laboratório)
+### Entrar
 
-Não há login por senha. Com `app.dev.tokens=true`, o endpoint `POST /dev/tokens` emite um JWT para o `sub` e os `perfis` informados:
+**Login real:** `POST /auth/login` com `id` e `senha` devolve um JWT válido por 1 hora. Senhas são guardadas com PBKDF2-HMAC-SHA256 e sal aleatório. Usuário inexistente e senha errada recebem a mesma resposta `401`.
+
+O primeiro administrador é semeado na subida, a partir de variáveis de ambiente (nunca de senha no repositório), e só se ainda não existir nenhum administrador:
+
+```bash
+APP_BOOTSTRAP_ADMIN_ID=admin APP_BOOTSTRAP_ADMIN_SENHA='uma-senha-com-8-ou-mais' \
+  java -jar target/organizacao-recursos-0.1.0-SNAPSHOT.jar
+```
+
+Com esse administrador, os demais usuários são cadastrados por `POST /usuarios` (perfis `SOLICITANTE`, `RESPONSAVEL` ou `ADMINISTRADOR`). As credenciais ficam em memória: reiniciar a aplicação exige recadastrar usuários.
+
+### Token de laboratório (somente demonstração e carga)
+
+Com `app.dev.tokens=true`, o endpoint `POST /dev/tokens` emite um JWT para o `sub` e os `perfis` informados, sem senha. Não emite `ADMINISTRADOR`:
 
 ```bash
 curl -s -X POST http://localhost:8080/dev/tokens \
@@ -67,7 +80,11 @@ curl -s -X POST http://localhost:8080/dev/tokens \
      -d '{"sub":"prof1","perfis":["SOLICITANTE"]}'
 ```
 
-Use o valor de `token` como `Authorization: Bearer <token>`. **Fora do laboratório, mantenha `app.dev.tokens=false`** (padrão em `application.properties`). O comando acima com `--app.dev.tokens=true` está documentado só para demonstração.
+Use o valor de `token` como `Authorization: Bearer <token>`. **Fora do laboratório, mantenha `app.dev.tokens=false`** (padrão em `application.properties`).
+
+### Interface web
+
+A página responsiva está em `http://localhost:8080/` (`src/main/resources/static/index.html`). Ela faz login, pesquisa recursos com filtros e disponibilidade, solicita reservas e mostra as notificações do usuário. O token fica só na aba (`sessionStorage`) e some ao sair.
 
 ---
 
@@ -75,8 +92,18 @@ Use o valor de `token` como `Authorization: Bearer <token>`. **Fora do laborató
 
 | Método e caminho | Perfil | Descrição |
 |---|---|---|
+| `POST /auth/login` | Público | Login com `id` e `senha`; devolve `token` (1 hora), `perfis` e `expiresIn` |
+| `POST /usuarios` | Administrador | Cadastra usuário com senha e perfis |
 | `POST /dev/tokens` | (somente com `app.dev.tokens=true`) | Emite token de laboratório para SOLICITANTE e RESPONSAVEL; ADMINISTRADOR é recusado com `400` |
 | `POST /recursos` | Administrador | Cadastra recurso (sala, professor, material) |
+| `GET /recursos?tipo=&localizacao=&capacidade_min=&competencia=&inicio=&fim=` | Autenticado | Pesquisa recursos DISPONIVEIS. Com `inicio` e `fim`, exclui os que têm reserva ativa ou manutenção no período |
+| `GET /recursos/{id}` | Autenticado | Consulta um recurso |
+| `PUT /recursos/{id}` | Administrador | Edição parcial: nome, localização, capacidade, restrito, status e competências. Tipo não muda |
+| `DELETE /recursos/{id}` | Administrador | Exclui. `409` se o recurso tiver qualquer reserva (preserva o histórico); nesse caso, marque-o como `INDISPONIVEL` |
+| `POST /movimentacoes/retirada` | Responsável vinculado ao recurso da reserva | Registra retirada de material (`reservaId`, `materialId`, `condicao`) |
+| `POST /movimentacoes/devolucao` | Responsável vinculado ao recurso da reserva | Registra devolução de material |
+| `GET /movimentacoes/{materialId}` | Responsável, Administrador | Histórico de retiradas e devoluções do material |
+| `GET /notificacoes` | Autenticado | Notificações simuladas do próprio usuário (criação e mudança de estado de reservas) |
 | `POST /vinculos` | Administrador | Vincula um Responsável a um recurso (`responsavelId`, `recursoId`) |
 | `POST /manutencoes` | Administrador | Bloqueia um recurso em um período de manutenção |
 | `POST /reservas` | Solicitante ou Responsável | Solicita reserva. Recurso restrito nasce `SOLICITADA`; livre nasce `APROVADA` |
@@ -178,6 +205,7 @@ Requer Docker, porque os testes de persistência e os cenários BDD sobem Postgr
 - testes unitários de regras (`testes/`, `servico/`);
 - testes de API com MockMvc (`api/`);
 - testes de persistência e concorrência contra PostgreSQL real (`persistencia/`);
+- testes end-to-end com a aplicação em porta real e PostgreSQL em contêiner (`e2e/`);
 - cenários BDD em `src/test/resources/features/`;
 - gate de cobertura JaCoCo.
 
@@ -188,6 +216,8 @@ Os testes seguem o ciclo vermelho → verde → refatoração; os commits `test(
 ## Integração contínua
 
 `.github/workflows/ci.yml` roda `./mvnw -B verify` em cada pull request e em cada push para `main`, em JDK 21. A análise do SonarCloud roda após o `verify` quando o segredo está disponível. Os runs mais recentes estão verdes (verificado com `gh run list`).
+
+O workflow manual `.github/workflows/carga.yml` roda as rodadas do JMeter (`perf/reservas.jmx`) e aplica os critérios de `scripts/analisar_jtl.py`. Não roda em PR, porque leva vários minutos.
 
 ---
 
@@ -208,15 +238,11 @@ Os testes seguem o ciclo vermelho → verde → refatoração; os commits `test(
 
 ## Limitações conhecidas
 
-Detalhes e ações em `docs/status-requisitos.md`, seção 5.
-
-- **Sem login real.** A identidade é o que o emissor de token declara. O endpoint de token de laboratório deve ficar desligado fora da demonstração (PEN-01).
-- **Sem token de Administrador.** O token de laboratório não emite `ADMINISTRADOR` (D4). Enquanto não houver login (PEN-01b), as operações de Administrador (cadastro de recursos, manutenções e vínculos) não são alcançáveis pela API.
-- **Sem gestão de recursos além do cadastro.** Não há `GET /recursos`, `PUT` nem `DELETE` (PEN-05).
-- **Sem interface web.** A API é o único ponto de entrada (PEN-06).
-- **Sem movimentações (retirada e devolução) e sem os demais relatórios HTTP** (carga por sala, contagem por estado, movimentações). O relatório de utilização já está disponível (PEN-07).
-- **Sem notificações nem lista de pendentes** (PEN-08).
+- **Credenciais em memória.** Usuários cadastrados por `POST /usuarios` somem ao reiniciar a aplicação. Persistir usuários é o próximo passo.
+- **Movimentações em memória.** Retiradas e devoluções ficam no `ServicoMovimentacoes` e não sobrevivem a reinício. A auditoria de reservas é persistida; a de movimentações ainda não.
+- **Notificações em memória e simuladas.** Ficam no log e em memória (ADR-006); não há envio real.
 - **Recursos não são auditados.** A auditoria cobre só as reservas.
+- **Relatórios HTTP parciais.** Só o de utilização tem rota. Carga por sala, contagem por estado e movimentações ainda não.
 
 ---
 

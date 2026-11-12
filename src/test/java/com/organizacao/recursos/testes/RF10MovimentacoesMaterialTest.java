@@ -8,6 +8,7 @@ import com.organizacao.recursos.dominio.*;
 import com.organizacao.recursos.servico.ServicoMovimentacoes;
 import com.organizacao.recursos.servico.ServicoReservas;
 import java.time.Duration;
+import java.time.ZoneOffset;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -104,7 +105,7 @@ class RF10MovimentacoesMaterialTest {
         // Act
         Duration duracao = movimentacoes.duracaoUso("M1");
         // Assert
-        assertEquals(Duration.between(retirada.instante(), devolucao.instante()), duracao);
+        assertEquals(Duration.between(retirada.instante().toInstant(ZoneOffset.UTC), devolucao.instante().toInstant(ZoneOffset.UTC)), duracao);
         assertTrue(!duracao.isNegative());
     }
 

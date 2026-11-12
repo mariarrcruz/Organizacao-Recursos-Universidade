@@ -11,6 +11,7 @@ import com.organizacao.recursos.persistencia.ArmazenamentoMemoria;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -18,14 +19,11 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Reservas, transições de estado, manutenção e auditoria.
- *
- * <p>Regras e ordem de verificação: transição (409) antes de perfil (403). O estado é gravado pelo
- * {@link Armazenamento}: em memória nos testes unitários, em PostgreSQL na aplicação (ADR-017). No PostgreSQL
- * a dupla reserva é recusada pelo banco mesmo entre instâncias do serviço (ADR-016).
- *
- * <p>Intervalos são semiabertos [início, fim) (RN-02, RN-04).
+ * Regras de reserva. Não usa monitor Java em volta de I/O: a atomicidade entre verificar disponibilidade e
+ * gravar é garantida pelo armazenamento (PostgreSQL: transação, lock consultivo por recurso e restrição EXCLUDE,
+ * DEF-001, DEF-008). O armazenamento em memória só deve ser usado por um único thread (testes e demonstração).
  */
+
 public class ServicoReservas {
 
     /** Estados que ocupam o recurso e bloqueiam novas sobreposições. */
@@ -51,9 +49,16 @@ public class ServicoReservas {
         this.armazenamento = armazenamento;
     }
 
+    /** Destino das notificações de mudança de estado (RF-11). Por padrão, descarta. */
+    private volatile Notificador notificador = Notificador.NULO;
+
+    public void definirNotificador(Notificador notificador) {
+        this.notificador = notificador == null ? Notificador.NULO : notificador;
+    }
+
     // ---------------------------------------------------------------- criação e alteração
 
-    public synchronized Reserva solicitar(Usuario ator, Recurso recurso, LocalDateTime inicio, LocalDateTime fim) {
+    public Reserva solicitar(Usuario ator, Recurso recurso, LocalDateTime inicio, LocalDateTime fim) {
         exigirAutenticado(ator);
         // Quem cria reserva é Solicitante ou Responsável (AMB-03). Administrador não cria reservas (D5).
         if (!tem(ator, Perfil.SOLICITANTE) && !tem(ator, Perfil.RESPONSAVEL)) {
@@ -70,10 +75,11 @@ public class ServicoReservas {
         EstadoReserva inicial = recurso.restrito() ? EstadoReserva.SOLICITADA : EstadoReserva.APROVADA;
         Reserva nova = new Reserva(UUID.randomUUID().toString(), ator, recurso, inicio, fim, inicial);
         armazenamento.inserirReserva(nova, evento(nova.getId(), ator, "SOLICITAR", null, inicial, null));
+        notificador.notificar(ator.id(), "Reserva " + nova.getId() + " (" + recurso.id() + ") registrada: " + inicial);
         return nova;
     }
 
-    public synchronized Reserva alterar(Usuario ator, Reserva reserva, LocalDateTime inicio, LocalDateTime fim) {
+    public Reserva alterar(Usuario ator, Reserva reserva, LocalDateTime inicio, LocalDateTime fim) {
         exigirAutenticado(ator);
         Reserva atual = buscarObrigatoria(reserva.getId());
         if (!ehDono(ator, atual)) {
@@ -94,7 +100,7 @@ public class ServicoReservas {
         return nova;
     }
 
-    public synchronized void excluir(Usuario ator, Reserva reserva) {
+    public void excluir(Usuario ator, Reserva reserva) {
         exigirAutenticado(ator);
         Reserva atual = buscarObrigatoria(reserva.getId());
         if (!ehDono(ator, atual)) {
@@ -136,7 +142,7 @@ public class ServicoReservas {
         return transicionar(ator, reserva, EstadoReserva.NAO_COMPARECEU, null);
     }
 
-    public synchronized Reserva transicionar(Usuario ator, Reserva reserva, EstadoReserva destino, String justificativa) {
+    public Reserva transicionar(Usuario ator, Reserva reserva, EstadoReserva destino, String justificativa) {
         exigirAutenticado(ator);
         Reserva atual = buscarObrigatoria(reserva.getId());
         if (!transicaoPermitida(atual.getEstado(), destino)) {
@@ -167,6 +173,8 @@ public class ServicoReservas {
         armazenamento.atualizarReserva(nova,
                 evento(nova.getId(), ator, "TRANSICIONAR", atual.getEstado(), destino, justificativa),
                 destino == EstadoReserva.APROVADA);
+        notificador.notificar(atual.getSolicitante().id(),
+                "Reserva " + nova.getId() + " (" + nova.getRecurso().id() + "): " + atual.getEstado() + " → " + destino);
         return nova;
     }
 
@@ -199,7 +207,7 @@ public class ServicoReservas {
 
     // ---------------------------------------------------------------- manutenção e bloqueios (RN-04)
 
-    public synchronized void criarManutencao(Usuario ator, Manutencao manutencao) {
+    public void criarManutencao(Usuario ator, Manutencao manutencao) {
         exigirPerfil(ator, Perfil.ADMINISTRADOR);
         if (manutencao.inicio() == null || manutencao.fim() == null || !manutencao.fim().isAfter(manutencao.inicio())) {
             throw new ErroAplicacao(400, "Período de manutenção inválido");
@@ -213,14 +221,23 @@ public class ServicoReservas {
 
     // ---------------------------------------------------------------- consultas e auditoria (RN-09)
 
-    public synchronized List<Reserva> pendentesDeAnalise(Usuario ator) {
+    /** Solicitações aguardando análise nos recursos vinculados ao Responsável (D3). */
+    public List<Reserva> pendentesDeAnalise(Usuario ator) {
         exigirPerfil(ator, Perfil.RESPONSAVEL);
         return armazenamento.listarReservas().stream()
-                .filter(r -> r.getEstado() == EstadoReserva.SOLICITADA).toList();
+                .filter(r -> r.getEstado() == EstadoReserva.SOLICITADA)
+                .filter(r -> vinculado(ator, r))
+                .toList();
+    }
+
+    /** Reservas em que o usuário é o solicitante. */
+    public List<Reserva> minhasReservas(Usuario ator) {
+        exigirAutenticado(ator);
+        return armazenamento.listarReservas().stream().filter(r -> ehDono(ator, r)).toList();
     }
 
     /** Vincula um Responsável a um recurso (D3). Só Administrador. */
-    public synchronized void vincularResponsavel(Usuario ator, String responsavelId, String recursoId) {
+    public void vincularResponsavel(Usuario ator, String responsavelId, String recursoId) {
         exigirPerfil(ator, Perfil.ADMINISTRADOR);
         if (responsavelId == null || responsavelId.isBlank() || recursoId == null || recursoId.isBlank()) {
             throw new ErroAplicacao(400, "Responsável e recurso são obrigatórios");
@@ -229,7 +246,7 @@ public class ServicoReservas {
     }
 
     /** Consulta uma reserva: dono, Administrador ou Responsável vinculado ao recurso (RF-16, D3). */
-    public synchronized Reserva consultar(Usuario ator, String reservaId) {
+    public Reserva consultar(Usuario ator, String reservaId) {
         exigirAutenticado(ator);
         Reserva r = buscarObrigatoria(reservaId);
         boolean responsavelVinculado = tem(ator, Perfil.RESPONSAVEL) && vinculado(ator, r);
@@ -240,13 +257,13 @@ public class ServicoReservas {
     }
 
     /** Lista as reservas de um recurso; restrito a Administrador. */
-    public synchronized List<Reserva> listarDoRecurso(Usuario ator, String recursoId) {
+    public List<Reserva> listarDoRecurso(Usuario ator, String recursoId) {
         exigirPerfil(ator, Perfil.ADMINISTRADOR);
         return reservasDoRecurso(recursoId);
     }
 
     /** Histórico de uma reserva: somente Responsável e Administrador, mesmo para o dono (RN-09). */
-    public synchronized List<EventoAuditoria> eventosDe(Usuario ator, String reservaId) {
+    public List<EventoAuditoria> eventosDe(Usuario ator, String reservaId) {
         exigirAlgumPerfil(ator, Perfil.RESPONSAVEL, Perfil.ADMINISTRADOR);
         buscarObrigatoria(reservaId);
         return armazenamento.listarEventos().stream().filter(e -> e.reservaId().equals(reservaId)).toList();
@@ -255,32 +272,32 @@ public class ServicoReservas {
     // ---------------------------------------------------------------- acesso interno aos demais serviços
 
     /** Insere uma reserva já existente no armazenamento (usado para preparar cenários de teste). */
-    public synchronized void registrarExistente(Reserva reserva) {
+    public void registrarExistente(Reserva reserva) {
         armazenamento.inserirReserva(reserva, null);
     }
 
-    public synchronized void registrarManutencaoExistente(Manutencao manutencao) {
+    public void registrarManutencaoExistente(Manutencao manutencao) {
         armazenamento.inserirManutencao(manutencao);
     }
 
-    public synchronized List<Reserva> reservasDoRecurso(String recursoId) {
+    public List<Reserva> reservasDoRecurso(String recursoId) {
         return armazenamento.listarReservas().stream().filter(r -> r.getRecurso().id().equals(recursoId)).toList();
     }
 
-    synchronized Optional<Reserva> buscar(String id) {
+    Optional<Reserva> buscar(String id) {
         return armazenamento.buscarReserva(id);
     }
 
-    synchronized List<Reserva> todas() {
+    List<Reserva> todas() {
         return armazenamento.listarReservas();
     }
 
-    synchronized boolean temReservaAtiva(String recursoId) {
+    boolean temReservaAtiva(String recursoId) {
         return armazenamento.listarReservas().stream()
                 .anyMatch(r -> r.getRecurso().id().equals(recursoId) && ATIVAS.contains(r.getEstado()));
     }
 
-    synchronized boolean temConflito(String recursoId, LocalDateTime inicio, LocalDateTime fim) {
+    boolean temConflito(String recursoId, LocalDateTime inicio, LocalDateTime fim) {
         return sobrepoeManutencao(recursoId, inicio, fim) || sobrepoeReserva(recursoId, inicio, fim, null);
     }
 
@@ -288,14 +305,14 @@ public class ServicoReservas {
      * Consulta de disponibilidade: livre de reservas ativas e de manutenção no intervalo. Qualquer usuário
      * autenticado consulta; o retorno não identifica reservas de terceiros.
      */
-    public synchronized boolean disponivel(Usuario ator, String recursoId, LocalDateTime inicio, LocalDateTime fim) {
+    public boolean disponivel(Usuario ator, String recursoId, LocalDateTime inicio, LocalDateTime fim) {
         exigirAutenticado(ator);
         validarPeriodo(inicio, fim);
         return !temConflito(recursoId, inicio, fim);
     }
 
     /** Tentativas recusadas por sobreposição com reserva (conflitos evitados, RF-12). */
-    synchronized List<ConflitoReserva> conflitosRegistrados() {
+    List<ConflitoReserva> conflitosRegistrados() {
         return armazenamento.listarConflitos();
     }
 
@@ -345,7 +362,7 @@ public class ServicoReservas {
         if (!fim.isAfter(inicio)) {
             throw new ErroAplicacao(400, "Fim deve ser posterior ao início");
         }
-        if (Duration.between(inicio, fim).compareTo(DURACAO_MINIMA) < 0) {
+        if (Duration.between(inicio.toInstant(ZoneOffset.UTC), fim.toInstant(ZoneOffset.UTC)).compareTo(DURACAO_MINIMA) < 0) {
             throw new ErroAplicacao(400, "Duração mínima da reserva é de " + DURACAO_MINIMA.toMinutes() + " minuto(s)");
         }
     }

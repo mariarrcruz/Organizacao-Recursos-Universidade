@@ -1,5 +1,7 @@
 # Status dos Requisitos — Auditoria de Qualidade
 
+> **Atualização posterior à auditoria (2026-11-12).** Esta auditoria foi feita sobre um commit anterior. Estão resolvidos: login por senha (PEN-01 e PEN-01b), Java 21 no build, pesquisa, consulta, edição e exclusão de recursos (PEN-05), movimentações por HTTP (RF-09), notificações simuladas com `GET /notificacoes` (RF-11, PEN-08), interface em `/` (RF-13), teste end-to-end (TG-05), teste de concorrência entre manutenção e reserva (PEN-02), correção dos bugs `S8700` (confirmação no SonarCloud pendente) e troca do mock de persistência. O vínculo Responsável–recurso já estava implementado (PEN-01c). Desempenho corrigido (DEF-008; rodadas 05 a 07 em `docs/performance/resultado-03.md`, sem ambiente de referência). Pendências reais: persistência de usuários e movimentações, e relatórios HTTP além do de utilização.
+
 Sistema de Organização de Recursos — auditoria em 11/11/2026 (semana ISO 46).
 
 **Escopo:** os 14 requisitos funcionais obrigatórios do PRD (RF-01 a RF-14, `docs/PRD.md` §3), as regras de negócio RN-01 a RN-09 e os quatro limitadores de nota de RISK-01 (`docs/PRD.md` §6). Os RFs de `rfc/requisitos-funcionais.md` (RF-15 a RF-20) foram usados como evidência complementar, sem pontuação separada.

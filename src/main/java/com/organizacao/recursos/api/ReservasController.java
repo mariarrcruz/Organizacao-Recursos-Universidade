@@ -73,6 +73,20 @@ public class ReservasController {
         return servico.listarDoRecurso(ator, recursoId).stream().map(ReservaJson::de).toList();
     }
 
+    /** Reservas do próprio usuário (solicitante). */
+    @GetMapping("/minhas")
+    public List<ReservaJson> minhas(@RequestHeader(value = "Authorization", required = false) String autorizacao) {
+        Usuario ator = autenticacao.autenticar(autorizacao);
+        return servico.minhasReservas(ator).stream().map(ReservaJson::de).toList();
+    }
+
+    /** Solicitações aguardando análise nos recursos vinculados ao Responsável. */
+    @GetMapping("/pendentes")
+    public List<ReservaJson> pendentes(@RequestHeader(value = "Authorization", required = false) String autorizacao) {
+        Usuario ator = autenticacao.autenticar(autorizacao);
+        return servico.pendentesDeAnalise(ator).stream().map(ReservaJson::de).toList();
+    }
+
     @GetMapping("/{id}")
     public ReservaJson consultar(@RequestHeader(value = "Authorization", required = false) String autorizacao,
                                  @PathVariable("id") String id) {
